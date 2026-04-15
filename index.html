@@ -261,7 +261,7 @@ html,body{
 #win-screen .btn-row{display:flex;gap:12px;margin-top:4px}
 
 /* ---- NO ADS TAG ---- */
-#death-screen .no-ads{color:#7a8fa8;font-size:10px;letter-spacing:3px;text-transform:uppercase;text-align:center;margin-top:6px;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;width:100%;text-shadow:0 0 8px rgba(120,160,200,0.3)}
+#death-screen .no-ads{color:rgba(255,255,255,0.55);font-size:11px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;text-align:center;margin-top:8px;border-top:1px solid rgba(255,255,255,0.15);padding-top:10px;width:100%}
 
 /* ---- MUTE BUTTON ---- */
 #mute-btn{position:fixed;top:10px;right:10px;z-index:200;width:32px;height:32px;
@@ -918,6 +918,34 @@ const SPRITE_MAP = {
   file:'assets/objects/fileobject.png', truth:'assets/objects/truthobject.png',
   riviera:'assets/objects/rivieraobject.png', execorder:'assets/objects/execorderobject.png',
   handcuffs:'assets/screens/accountability.png',
+  bibi:'assets/bosses/bibiyahoo.png',
+  muskrat:'assets/bosses/elongatedmuskrat.png',
+};
+
+// ---- BOSS DEFINITIONS ----
+const BOSS_DEFS = {
+  bibi: {
+    id:'bibi', sprite:'bibi', label:'BIBI YAHOO', pts:2000,
+    meter:'scandal', hitsMax:3,
+    move:'zigzag', throwInterval:2.2,
+    throwType:'bomb',   // throws classified-doc bombs
+    throwLabel:'🚨 AIRSTRIKE', throwSprite:'secret',
+    killQuote:'"THE GREATEST ALLY IS GONE"', killSrc:'White House Press Briefing',
+    killAnnounce:'BIBI ELIMINATED', killColor:'#ff4444',
+    stages:['telaviv','meltdown'],
+    scoreThreshold:20000,
+  },
+  muskrat: {
+    id:'muskrat', sprite:'muskrat', label:'ELONGATED MUSKRAT', pts:2500,
+    meter:'econ', hitsMax:3,
+    move:'spiral', throwInterval:1.8,
+    throwType:'file',  // throws confidential files (sliceable but penalty on miss)
+    throwLabel:'CLASSIFIED', throwSprite:'file',
+    killQuote:'"$420.69 BILLION LIQUIDATED"', killSrc:'DOGE Financial Statement',
+    killAnnounce:'MUSKRAT LIQUIDATED', killColor:'#ffd700',
+    stages:['oval','meltdown'],
+    scoreThreshold:20000,
+  },
 };
 const METER_COLORS = {war:'#ff3333',econ:'#ffd700',scandal:'#ff8c00'};
 const METER_LABELS = {war:'WAR',econ:'ECON',scandal:'SCANDAL'};
@@ -1131,6 +1159,8 @@ const G = {
   _swipeSlices:0, _multiSliceTimer:0,
   // Face pop animation: >0 = face scales up then back (set to 1.0 on trigger)
   _facePop:0, _facePopDir:-1,
+  // Boss fight state
+  bossActive:false, bossTriggered:{},
 };
 
 // ---- HELPERS ----
@@ -1349,10 +1379,92 @@ function spawnBomb(b){
     st:0,lx:0,ly:0,lvx:0,lvy:0,lr:0,lrv:0,rx:0,ry:0,rvx:0,rvy:0,rr:0,rrv:0});
 }
 
+// ---- BOSS SYSTEM ----
+function spawnBoss(def){
+  if(G.bossActive)return; // only one boss at a time
+  G.bossActive=true;
+  G.bossTriggered[def.id]=true;
+  // Boss enters from left side, big and slow
+  const bossR=CFG.OBJ_R*2.8;
+  const startX=-bossR;
+  const startY=rng(CFG.H*0.30, CFG.H*0.55);
+  const vx=rng(60,90);
+  const vy=rng(-80,-40);
+  G.objects.push({
+    x:startX, y:startY, vx, vy,
+    r:bossR, rot:0, rotV:rng(-1.5,1.5),
+    sliced:false, missed:false, isBomb:false, isBoss:true,
+    bossDef:def, hitsLeft:def.hitsMax, throwTimer:1.5, throwInterval:def.throwInterval,
+    zigzagPhase:0, spiralPhase:0, origVx:vx, origVy:vy,
+    content:{id:def.id, quote:def.killQuote, src:def.killSrc},
+    label:def.label, sprite:def.sprite, meter:def.meter, meterImpact:0, pts:def.pts,
+    special:null,
+    st:0,lx:0,ly:0,lvx:0,lvy:0,lr:0,lrv:0,rx:0,ry:0,rvx:0,rvy:0,rr:0,rrv:0,
+  });
+  // Warning announce
+  G.comboAnnounce={name:'⚠ ' + def.label + ' INCOMING', color:'#ff2222', life:2.5, max:2.5};
+  G.shake=8;
+  sndDistortion();
+}
+
+function spawnBossProjectile(boss){
+  const def=boss.bossDef;
+  if(def.throwType==='bomb'){
+    // Bibi throws classified-doc bombs — slicing them costs you
+    const bdef=BOMBS.find(b=>b.id==='classified-docs')||BOMBS[0];
+    sndBombAppear();
+    G.objects.push({
+      x:boss.x+rng(-20,20), y:boss.y,
+      vx:rng(-80,80), vy:rng(CFG.LAUNCH_VY_MIN*0.7, CFG.LAUNCH_VY_MAX*0.7),
+      r:CFG.OBJ_R+2, rot:0, rotV:rng(-5,5),
+      sliced:false, missed:false, isBomb:true,
+      bombDef:bdef, label:'🚨 AIRSTRIKE', sprite:'secret', meter:null, meterImpact:0, pts:0,
+      special:null, hitsLeft:1,
+      st:0,lx:0,ly:0,lvx:0,lvy:0,lr:0,lrv:0,rx:0,ry:0,rvx:0,rvy:0,rr:0,rrv:0,
+    });
+  } else {
+    // Muskrat throws confidential files — sliceable, worth big points
+    G.objects.push({
+      x:boss.x+rng(-30,30), y:boss.y,
+      vx:rng(-120,120), vy:rng(CFG.LAUNCH_VY_MIN*0.8, CFG.LAUNCH_VY_MAX*0.8),
+      r:CFG.OBJ_R, rot:0, rotV:rng(-6,6),
+      sliced:false, missed:false, isBomb:false,
+      content:{id:'muskrat-drop', quote:'"Nothing to see here"', src:'DOGE Archive'},
+      label:'CLASSIFIED', sprite:'file', meter:'econ', meterImpact:8, pts:250,
+      special:null, hitsLeft:1,
+      st:0,lx:0,ly:0,lvx:0,lvy:0,lr:0,lrv:0,rx:0,ry:0,rvx:0,rvy:0,rr:0,rrv:0,
+    });
+  }
+}
+
+function checkBossTriggers(){
+  const stage=G.currentStage;
+  for(const def of Object.values(BOSS_DEFS)){
+    if(def.stages.includes(stage) && G.score>=def.scoreThreshold && !G.bossTriggered[def.id] && !G.bossActive){
+      spawnBoss(def);
+      return;
+    }
+  }
+}
+
 function updateObjs(dt){
   for(let i=G.objects.length-1;i>=0;i--){
     const o=G.objects[i];
     if(o.sliced){o.st+=dt;o.lx+=o.lvx*dt;o.ly+=o.lvy*dt;o.lvy+=CFG.GRAVITY*dt;o.lr+=o.lrv*dt;o.rx+=o.rvx*dt;o.ry+=o.rvy*dt;o.rvy+=CFG.GRAVITY*dt;o.rr+=o.rrv*dt;if(o.st>1.2)G.objects.splice(i,1);continue}
+    // ---- BOSS MOVEMENT (no gravity, wall-bounce, throws projectiles) ----
+    if(o.isBoss){
+      const def=o.bossDef;
+      o.x+=o.vx*dt; o.y+=o.vy*dt; o.rot+=o.rotV*dt;
+      if(def.move==='zigzag'){o.zigzagPhase+=dt*3.5;o.y+=Math.sin(o.zigzagPhase)*3.5;}
+      if(def.move==='spiral'){o.spiralPhase=(o.spiralPhase||0)+dt*2.5;o.x+=Math.sin(o.spiralPhase)*2.5;o.y+=Math.cos(o.spiralPhase*0.7)*2;}
+      if(o.x-o.r<0&&o.vx<0)o.vx=Math.abs(o.vx);
+      if(o.x+o.r>CFG.W&&o.vx>0)o.vx=-Math.abs(o.vx);
+      if(o.y-o.r<55&&o.vy<0)o.vy=Math.abs(o.vy)*0.6;
+      if(o.y+o.r>CFG.H*0.70&&o.vy>0)o.vy=-Math.abs(o.vy)*0.7;
+      o.throwTimer-=dt;
+      if(o.throwTimer<=0){o.throwTimer=o.throwInterval+rng(-0.3,0.3);spawnBossProjectile(o);}
+      continue;
+    }
     o.vy+=CFG.GRAVITY*dt;o.x+=o.vx*dt;o.y+=o.vy*dt;o.rot+=o.rotV*dt;
     // Special movement
     if(o.special){
@@ -1361,7 +1473,7 @@ function updateObjs(dt){
       if(sp.move==='erratic'){o.x+=Math.sin(G.time*12+o.zigzagPhase)*2.5;o.y+=Math.cos(G.time*8)*1.5;}
       if(sp.move==='boomerang'){
         o.boomerangPhase+=dt;
-        if(o.boomerangPhase>1.2&&o.vy>0){o.vy=-Math.abs(o.origVy)*0.7;o.vx=-o.origVx*0.5;} // return
+        if(o.boomerangPhase>1.2&&o.vy>0){o.vy=-Math.abs(o.origVy)*0.7;o.vx=-o.origVx*0.5;}
       }
     }
     // Handcuffs: gentle wide zigzag
@@ -1388,6 +1500,37 @@ function sliceObj(o,angle){
     return;
   }
   if(o.isBomb){sliceBomb(o);return}
+
+  // ---- BOSS HIT ----
+  if(o.isBoss){
+    o.hitsLeft--;
+    G.shake=10;
+    spawnParticles(o.x,o.y,8,o.sprite);
+    sndSlice(3);
+    G._facePop=1.0;
+    if(o.hitsLeft<=0){
+      // Boss killed!
+      o.sliced=true;o.st=0;
+      o.lx=o.x;o.ly=o.y;o.lvx=o.vx-60;o.lvy=-200;o.lr=0;o.lrv=-6;
+      o.rx=o.x;o.ry=o.y;o.rvx=o.vx+60;o.rvy=-200;o.rr=0;o.rrv=6;
+      const def=o.bossDef;
+      G.score+=def.pts;G.bossActive=false;
+      spawnParticles(o.x,o.y,30,o.sprite);
+      G.shake=20;
+      G.slowmo=2.5;
+      G.comboAnnounce={name:def.killAnnounce,color:def.killColor,life:3,max:3};
+      G.quoteFlashes.push({text:def.killQuote,src:def.killSrc,life:2.5,max:2.5});
+      G.popups.push({x:CFG.W/2,y:CFG.H*0.4,text:`+${def.pts.toLocaleString()}`,life:2,max:2,col:def.killColor,size:36});
+      sndDistortion();
+    } else {
+      // Hit but not dead — flash red, show hit count
+      o.r=Math.max(o.r*0.88, CFG.OBJ_R*1.8); // shrink a little each hit
+      const def=o.bossDef;
+      G.popups.push({x:o.x,y:o.y-20,text:`${o.hitsLeft} HIT${o.hitsLeft>1?'S':''} LEFT`,life:0.9,max:0.9,col:'#ff4444',size:16});
+      G.comboAnnounce={name:'HIT ' + def.label + '!',color:'#ffaa00',life:1.2,max:1.2};
+    }
+    return;
+  }
 
   // Power-up handling
   if(o.isPowerup){
@@ -1828,6 +1971,40 @@ function drawObj(o){
     ctx.fillStyle='#ffd700';ctx.font='bold 11px Arial Black,sans-serif';ctx.textAlign='center';
     ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('⚖ THE CUFFS',o.x,o.y+o.r+15);ctx.shadowBlur=0;
   }
+  // ---- BOSS RENDERING ----
+  if(o.isBoss&&!o.sliced){
+    const def=o.bossDef;
+    const t=performance.now();
+    // Pulsing danger ring — red for Bibi, gold for Muskrat
+    const bossRingCol=def.id==='bibi'?`rgba(255,40,40,${0.55+Math.sin(t/90)*0.3})`:`rgba(255,200,0,${0.55+Math.sin(t/90)*0.3})`;
+    ctx.save();
+    ctx.shadowColor=bossRingCol;ctx.shadowBlur=20;
+    ctx.strokeStyle=bossRingCol;ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(o.x,o.y,o.r+6,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle=bossRingCol.replace(/[\d.]+\)$/,'0.2)');ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(o.x,o.y,o.r+14,0,Math.PI*2);ctx.stroke();
+    ctx.shadowBlur=0;ctx.restore();
+    // Health pips above boss label
+    const pipY=o.y-o.r-18;
+    const pipR=7;const pipGap=20;
+    const totalW=(def.hitsMax-1)*pipGap;
+    const pipX0=o.x-totalW/2;
+    for(let h=0;h<def.hitsMax;h++){
+      const px=pipX0+h*pipGap;
+      ctx.beginPath();ctx.arc(px,pipY,pipR,0,Math.PI*2);
+      ctx.fillStyle=h<o.hitsLeft?(def.id==='bibi'?'#ff3333':'#ffd700'):'rgba(255,255,255,0.15)';
+      ctx.shadowColor=h<o.hitsLeft?(def.id==='bibi'?'#ff0000':'#ffd700'):'transparent';
+      ctx.shadowBlur=h<o.hitsLeft?8:0;
+      ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,0.6)';ctx.lineWidth=1.5;ctx.stroke();
+    }
+    ctx.shadowBlur=0;
+    // Boss name label — big and bold
+    ctx.fillStyle=def.id==='bibi'?'#ff4444':'#ffd700';
+    ctx.font='bold 13px Arial Black,sans-serif';ctx.textAlign='center';
+    ctx.shadowColor='#000';ctx.shadowBlur=5;
+    ctx.fillText(def.label,o.x,o.y+o.r+16);ctx.shadowBlur=0;
+  }
 }
 
 function drawParticles(){for(const p of G.particles){const a=p.life/p.max;ctx.globalAlpha=a;ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r*a,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1}
@@ -2142,6 +2319,7 @@ async function startPlaying(){
   G.accountability={signal:false,coverup:false,bondi:false,court:false,survival:false};
   G.accountabilityFull=false;G.handcuffsTimer=0;
   G._sessionSlices=[];G._alarmTimer=0;
+  G.bossActive=false;G.bossTriggered={};
   // Ticker
   G._tickerFull=TICKER_HEADLINES.join('  ◆  ');
   G._tickerX=CFG.W; // start off-screen right
@@ -2193,6 +2371,7 @@ function loop(ts){
     // Multi-slice timer
     if(G._multiSliceTimer>0){G._multiSliceTimer-=dt;if(G._multiSliceTimer<0)G._multiSliceTimer=0;}
     updateObjs(gameDt);updateParticles(dt);updatePopups(dt);updateQuoteFlashes(dt);updateBombMsgs(dt);updateMeters(gameDt);
+    checkBossTriggers();
 
     // Tension drone — rises as meters fill
     const maxM=Math.max(G.meters.war,G.meters.econ,G.meters.scandal)/CFG.METER_MAX;
