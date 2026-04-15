@@ -410,6 +410,8 @@ html,body{
 
   <div style="color:#888;font-size:10px;font-style:italic;margin-top:2px;text-align:center">"I take no responsibility whatsoever." — someone</div>
   <div id="btn-tutorial-go">UNLEASH HELL &rarr;</div>
+  <button id="btn-tutorial-replay" style="display:none;background:none;border:1px solid rgba(255,140,0,0.35);color:#ff8c00;font-size:11px;font-family:'Arial Black',sans-serif;text-transform:uppercase;letter-spacing:2px;padding:10px 28px;border-radius:8px;cursor:pointer;margin-top:4px">▶ REPLAY TUTORIAL</button>
+  <button id="btn-tutorial-back" style="display:none;background:none;border:1px solid rgba(255,255,255,0.1);color:#555;font-size:10px;font-family:'Arial Black',sans-serif;text-transform:uppercase;letter-spacing:2px;padding:8px 24px;border-radius:8px;cursor:pointer;margin-top:2px">← BACK TO STAGES</button>
 </div>
 
 <!-- WIN -->
@@ -806,6 +808,7 @@ const ACHIEVEMENTS = [
   {id:'meltdown_60',    name:'Meltdown Survivor',      desc:'Survive 60s in The Meltdown'},
   {id:'hat_3',          name:'Wardrobe of Chaos',      desc:'Own 3 or more hats'},
   {id:'accountability', name:'ACCOUNTABILITY',         desc:'Slice the handcuffs. Win the game.'},
+  {id:'tutorial_done', name:'Briefed And Dangerous',   desc:'You read the tutorial. Bold. Nobody does that. The bar is on the floor and you stepped over it.'},
 ];
 
 // ---- WHERE ARE THEY NOW ----
@@ -1832,7 +1835,8 @@ document.getElementById('btn-stages').addEventListener('click',()=>{renderStageS
 document.getElementById('btn-tutorial-go').addEventListener('click',(e)=>{
   e.stopPropagation();
   if(G._pendingStage){
-    localStorage.setItem('oof_played_before','1'); // mark first-time complete
+    localStorage.setItem('oof_played_before','1');
+    unlockAchievement('tutorial_done'); // read the manual, legend
     showScreen(null);launchStage(G._pendingStage);G._pendingStage=null;
   }else{renderStageSelect();}
 });
@@ -1849,7 +1853,22 @@ document.getElementById('btn-tutorial-go').addEventListener('click',(e)=>{
 
 // Shop
 document.getElementById('btn-shop').addEventListener('click',()=>{renderShop()});
-document.getElementById('btn-howto').addEventListener('click',(e)=>{e.stopPropagation();showScreen('tutorial-screen');setTimeout(()=>{if(window.drawTutIcons)drawTutIcons();},50);});
+document.getElementById('btn-howto').addEventListener('click',(e)=>{
+  e.stopPropagation();
+  showScreen('tutorial-screen');
+  // Accessed from HOW TO PLAY: hide UNLEASH HELL, show replay + back buttons
+  document.getElementById('btn-tutorial-go').style.display='none';
+  document.getElementById('btn-tutorial-replay').style.display='block';
+  document.getElementById('btn-tutorial-back').style.display='block';
+  setTimeout(()=>{if(window.drawTutIcons)drawTutIcons();},50);
+});
+document.getElementById('btn-tutorial-back').addEventListener('click',()=>{renderStageSelect();});
+document.getElementById('btn-tutorial-replay').addEventListener('click',()=>{
+  // Clear the coached flag so in-game coaching fires again, start Oval Office
+  localStorage.removeItem('oof_played_before');
+  showScreen(null);
+  launchStage('oval');
+});
 document.getElementById('shop-back').addEventListener('click',()=>{renderStageSelect()});
 
 // Win screen
@@ -2421,6 +2440,10 @@ function launchStage(stageKey){
     G._tutorialSeen=true;
     G._pendingStage=stageKey;
     showScreen('tutorial-screen');
+    // First-play: show UNLEASH HELL, hide HOW TO PLAY buttons
+    document.getElementById('btn-tutorial-go').style.display='';
+    document.getElementById('btn-tutorial-replay').style.display='none';
+    document.getElementById('btn-tutorial-back').style.display='none';
     setTimeout(()=>{if(window.drawTutIcons)drawTutIcons();},50);
     return;
   }
