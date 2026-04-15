@@ -49,6 +49,16 @@ html,body{
 }
 #title-screen .sub{color:#aaa;font-size:13px;text-transform:uppercase;letter-spacing:4px;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+#title-char{
+  display:block;cursor:pointer;border-radius:50%;
+  box-shadow:0 0 40px rgba(255,140,0,0.5),0 0 80px rgba(255,100,0,0.2);
+  transition:transform 0.1s ease;
+}
+#title-char:active{transform:scale(0.93)}
+#title-poke{
+  color:#ff8c00;font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  height:14px;transition:opacity 0.3s;opacity:0;font-family:'Courier New',monospace;
+}
 
 /* ---- STAGE SELECT ---- */
 #stage-select{
@@ -254,10 +264,12 @@ html,body{
 
 <!-- TITLE -->
 <div class="screen active" id="title-screen">
-  <canvas id="title-logo" width="400" height="260" style="width:85%;max-width:380px;margin-bottom:24px;order:0"></canvas>
-  <div class="tagline" style="order:1">swipe. slice. survive. share.</div>
-  <div class="sub" style="padding:16px 50px;border:2px solid rgba(255,140,0,0.5);border-radius:10px;font-size:16px;letter-spacing:4px;cursor:pointer;background:rgba(255,140,0,0.1);margin-top:14px;order:2">START</div>
-  <div class="version" style="position:static;margin-top:16px;order:3">v0.5 — #OrangeFury</div>
+  <canvas id="title-logo" width="400" height="260" style="width:82%;max-width:360px;margin-bottom:8px;order:0"></canvas>
+  <canvas id="title-char" width="200" height="200" style="width:148px;height:148px;order:1;margin:4px 0"></canvas>
+  <div id="title-poke" style="order:2">TAP HIM</div>
+  <div class="tagline" style="order:3;margin-top:4px">swipe. slice. survive. share.</div>
+  <div class="sub" style="padding:14px 44px;border:2px solid rgba(255,140,0,0.5);border-radius:10px;font-size:16px;letter-spacing:4px;cursor:pointer;background:rgba(255,140,0,0.1);margin-top:10px;order:4">START</div>
+  <div class="version" style="position:static;margin-top:12px;order:5">v0.5 — #OrangeFury</div>
 </div>
 
 <!-- STAGE SELECT -->
@@ -585,44 +597,104 @@ const SHOP_HATS = [
 ];
 
 // ---- CHARACTER EXPRESSIONS ----
-// Crop regions from 3x2 character sheet (Fruit character expression sheet.png)
-// Layout: [SMUG, PANICKED, FURIOUS] / [SCHEMING, DEFEATED, CRACKING]
-const CHAR_SHEET = 'assets/character/expressions.png';
-const CHAR_COLS = 3, CHAR_ROWS = 2;
-const EXPRESSIONS = {
-  smug:     {col:0, row:0},
-  panicked: {col:1, row:0},
-  furious:  {col:2, row:0},
-  scheming: {col:0, row:1},
-  defeated: {col:1, row:1},
-  cracking: {col:2, row:1},
+// Individual expression PNGs — cleaner than sheet crop
+const CHAR_SHEET = 'assets/character/expressions.png'; // kept as fallback
+const EXPR_FILES = {
+  smug:     'assets/character/smug.png',
+  panicked: 'assets/character/panicked.png',
+  furious:  'assets/character/furious.png',
+  scheming: 'assets/character/scheming.png',
+  defeated: 'assets/character/defeated.png',
+  cracking: 'assets/character/cracked.png',
 };
 
 // Returns the current expression based on game state
 function getExpression() {
-  if (G.state === 'dead') return 'smug';      // he won
-  if (G.combo >= 8) return 'furious';           // angry at your combo
+  if (G.state === 'dead') return 'smug';      // he won, smug as ever
+  if (G.combo >= 8) return 'furious';         // furious at your combo
   const maxM = Math.max(G.meters.war, G.meters.econ, G.meters.scandal);
-  if (maxM >= 85) return 'cracking';            // near death
-  if (maxM >= 60) return 'panicked';            // getting worried
-  if (G.time > 60) return 'furious';            // late game aggression
-  return 'smug';                                 // default smugness
+  if (maxM >= 85) return 'cracking';          // physically cracking
+  if (maxM >= 60) return 'panicked';          // getting worried
+  if (G.time > 60) return 'furious';          // late-game aggression
+  return 'scheming';                           // default: always scheming
 }
 
-// Draw a specific expression from the character sheet
+// Draw a specific expression using individual PNGs (sheet fallback if missing)
 function drawCharExpression(expr, x, y, size) {
+  const img = assets['expr_' + expr];
+  if (img) {
+    ctx.drawImage(img, x - size/2, y - size/2, size, size);
+    return;
+  }
+  // Sheet fallback
   const sheet = assets.charSheet;
   if (!sheet) return;
-  const e = EXPRESSIONS[expr];
-  const cw = sheet.width / CHAR_COLS;
-  const ch = sheet.height / CHAR_ROWS;
-  // Crop with slight inset to skip borders/labels
-  const inset = 0.08;
-  const sx = cw * e.col + cw * inset;
-  const sy = ch * e.row + ch * 0.2;  // skip label text at top
-  const sw = cw * (1 - inset * 2);
-  const sh = ch * 0.75;              // skip label area
-  ctx.drawImage(sheet, sx, sy, sw, sh, x - size/2, y - size/2, size, size * (sh/sw));
+  const COLS=3,ROWS=2;
+  const map={smug:[0,0],panicked:[1,0],furious:[2,0],scheming:[0,1],defeated:[1,1],cracking:[2,1]};
+  const [col,row]=map[expr]||[0,0];
+  const cw=sheet.width/COLS, ch=sheet.height/ROWS;
+  const inset=0.08, sx=cw*col+cw*inset, sy=ch*row+ch*0.2, sw=cw*(1-inset*2), sh=ch*0.75;
+  ctx.drawImage(sheet,sx,sy,sw,sh,x-size/2,y-size/2,size,size*(sh/sw));
+}
+
+// ---- TITLE SCREEN CHARACTER ANIMATION ----
+let _titleExpr = 'smug';
+let _titlePokeTimer = 0;
+let _titleAnimFrame = null;
+
+function startTitleCharAnim() {
+  const c = document.getElementById('title-char');
+  if (!c) return;
+  const cx = c.getContext('2d');
+  const W = c.width, H = c.height;
+
+  function frame(ts) {
+    if (G.state !== 'title') { _titleAnimFrame = null; return; }
+    _titleAnimFrame = requestAnimationFrame(frame);
+
+    cx.clearRect(0, 0, W, H);
+
+    // Floating offset
+    const floatY = Math.sin(ts / 700) * 5;
+
+    // Radial glow behind face
+    const gr = cx.createRadialGradient(W/2, H/2+floatY, W*0.08, W/2, H/2+floatY, W/2);
+    gr.addColorStop(0, 'rgba(255,140,0,0.35)');
+    gr.addColorStop(0.5, 'rgba(255,80,0,0.12)');
+    gr.addColorStop(1, 'rgba(255,80,0,0)');
+    cx.fillStyle = gr;
+    cx.fillRect(0, 0, W, H);
+
+    // Clip to circle
+    cx.save();
+    cx.beginPath();
+    cx.arc(W/2, H/2+floatY, W/2-4, 0, Math.PI*2);
+    cx.clip();
+
+    const img = assets['expr_' + _titleExpr];
+    if (img) cx.drawImage(img, 4, 4+floatY, W-8, H-8);
+
+    cx.restore();
+
+    // Poke timer — revert to smug after panic
+    if (_titlePokeTimer > 0) {
+      _titlePokeTimer -= 16;
+      if (_titlePokeTimer <= 0) { _titleExpr = 'smug'; }
+    }
+  }
+  _titleAnimFrame = requestAnimationFrame(frame);
+}
+
+function pokeTitleChar() {
+  _titleExpr = 'panicked';
+  _titlePokeTimer = 700; // ms
+  const poke = document.getElementById('title-poke');
+  if (poke) {
+    poke.textContent = "HE'S SCARED. GOOD.";
+    poke.style.opacity = '1';
+    clearTimeout(poke._t);
+    poke._t = setTimeout(() => { poke.style.opacity = '0'; }, 1200);
+  }
 }
 
 // ---- COMBO THRESHOLDS ----
@@ -915,6 +987,11 @@ function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   if (id) document.getElementById(id).classList.add('active');
+  // Restart title character animation when returning to title
+  if (id === 'title-screen' || (!id && G.state === 'title')) {
+    _titleExpr = 'smug';
+    if (!_titleAnimFrame) startTitleCharAnim();
+  }
 }
 
 function renderStageSelect() {
@@ -1860,7 +1937,9 @@ async function init(){
     const loads=Object.entries(SPRITE_MAP).map(([k,v])=>loadImg(k,v));
     const hatLoads=SHOP_HATS.map(h=>loadImg('hat_'+h.id, h.sprite));
     const puLoads=POWERUPS.map(p=>loadImg(p.sprite, p.img));
-    await Promise.all([...loads, ...hatLoads, ...puLoads,
+    // Individual character expression PNGs
+    const exprLoads=Object.entries(EXPR_FILES).map(([k,v])=>loadImg('expr_'+k, v));
+    await Promise.all([...loads, ...hatLoads, ...puLoads, ...exprLoads,
       loadImg('charSheet', CHAR_SHEET),
       loadImg('titleLogo', 'assets/title/logo.png'),
       loadImg('winBg', 'assets/screens/accountabilitybg.png'),
@@ -1878,6 +1957,16 @@ async function init(){
       tc.width = 400;
       tc.height = Math.round(400 / aspect);
       tctx.drawImage(img, 0, 0, tc.width, tc.height);
+    }
+
+    // Start title character animation (smug face floating with glow)
+    startTitleCharAnim();
+
+    // Wire up title character tap reaction
+    const titleCharEl = document.getElementById('title-char');
+    if (titleCharEl) {
+      titleCharEl.addEventListener('click', e => { e.stopPropagation(); pokeTitleChar(); });
+      titleCharEl.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); pokeTitleChar(); }, {passive:false});
     }
 
     // Draw tutorial icons — called at init and when tutorial is shown
