@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260415235405">
+<meta name="build" content="20260415235831">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -2291,15 +2291,16 @@ function drawCoach() {
 function drawReadySlam(){
   if(!G._readySlam) return;
   const s = G._readySlam;
-  const progress = 1 - (s.timer / 3.0); // 0→1 over 3 seconds
+  const DURATION = 3.0;
+  const elapsed = Math.min(s.elapsed || 0, DURATION); // 0→3
+  const progress = elapsed / DURATION;                  // 0→1
   const now = performance.now();
 
   // Phases: 0-0.4s = slam in, 0.4-2.5s = hold, 2.5-3.0s = fade out
   let alpha;
-  if(progress < 0.13)      alpha = progress / 0.13;         // fast slam in
-  else if(progress < 0.83) alpha = 1.0;                     // hold
-  else                     alpha = 1 - (progress - 0.83) / 0.17; // fade out
-
+  if(progress < 0.13)      alpha = progress / 0.13;
+  else if(progress < 0.83) alpha = 1.0;
+  else                     alpha = 1 - (progress - 0.83) / 0.17;
   alpha = Math.max(0, Math.min(1, alpha));
 
   ctx.save();
@@ -2309,42 +2310,37 @@ function drawReadySlam(){
   ctx.fillStyle = 'rgba(0,0,0,0.88)';
   ctx.fillRect(0,0,CFG.W,CFG.H);
 
-  // Subtle pulse on the hold phase
-  const pulse = progress > 0.13 && progress < 0.83
-    ? 0.04 * Math.sin(now / 120) : 0;
-
+  const pulse = 0.03 * Math.sin(now / 120);
   const cx = CFG.W / 2;
 
-  // Top tag line
+  // Top tag — small orange caps
   ctx.font = 'bold 11px Arial,sans-serif';
-  ctx.fillStyle = 'rgba(255,140,0,0.7)';
+  ctx.fillStyle = 'rgba(255,140,0,0.75)';
   ctx.textAlign = 'center';
-  ctx.letterSpacing = '3px';
-  ctx.fillText('BRIEFING COMPLETE', cx, CFG.H * 0.32);
-  ctx.letterSpacing = '0px';
+  ctx.fillText('// BRIEFING COMPLETE //', cx, CFG.H * 0.33);
 
-  // Main line
+  // Main funny line — picked at game-start, stays stable
   const msgs = [
     "YOU'RE ON YOUR OWN.",
     'NO PRESSURE.',
     'TRY NOT TO LOSE DEMOCRACY.',
     "DON'T EMBARRASS YOURSELF.",
+    'PROBABLY FINE.',
   ];
-  // Pick one deterministically per run
-  const msgIdx = Math.floor((G.time * 10) % msgs.length);
+  const msgIdx = Math.floor(G.time) % msgs.length;
   const mainText = msgs[msgIdx] || msgs[0];
 
-  ctx.font = `bold ${Math.round((28 + pulse * 60))}px Arial Black,Impact,sans-serif`;
+  ctx.font = `bold ${Math.round(26 + pulse * 40)}px Arial Black,Impact,sans-serif`;
   ctx.fillStyle = '#ffffff';
-  ctx.shadowColor = 'rgba(255,120,0,0.8)';
-  ctx.shadowBlur = 18;
-  ctx.fillText(mainText, cx, CFG.H * 0.48);
+  ctx.shadowColor = 'rgba(255,100,0,0.9)';
+  ctx.shadowBlur = 20;
+  ctx.fillText(mainText, cx, CFG.H * 0.47);
   ctx.shadowBlur = 0;
 
   // Sub line
-  ctx.font = 'bold 13px Arial,sans-serif';
-  ctx.fillStyle = 'rgba(255,200,100,0.9)';
-  ctx.fillText('Good luck. You\'ll need it.', cx, CFG.H * 0.58);
+  ctx.font = '13px Arial,sans-serif';
+  ctx.fillStyle = 'rgba(255,200,100,0.85)';
+  ctx.fillText("Good luck. You'll need it.", cx, CFG.H * 0.57);
 
   // Countdown dots
   const totalDots = 3;
@@ -2647,6 +2643,7 @@ function loop(ts){
     }
     // Ready slam countdown
     if(G._readySlam){
+      G._readySlam.elapsed = (G._readySlam.elapsed||0) + dt;
       G._readySlam.timer -= dt;
       if(G._readySlam.timer <= 0) G._readySlam = null;
     }
