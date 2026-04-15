@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260415233715">
+<meta name="build" content="20260415234057">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1342,12 +1342,12 @@ function launchPos(){
 }
 
 function spawnObj(){
-  // Bombs — suppressed for first 8s during coaching
-  if(!G._coach?.active || G.time >= 8){
+  // Bombs — suppressed for first 6s during coaching (gives player ~6s of pure slicing first)
+  if(!G._coach?.active || G.time >= 6){
     for(const b of BOMBS){if(Math.random()<b.rarity){spawnBomb(b);return}}
   }
-  // Power-ups (rare) — suppressed during first 8s coaching too
-  if(!G._coach?.active || G.time >= 8){
+  // Power-ups — suppressed until 11s during coaching (after bomb lesson)
+  if(!G._coach?.active || G.time >= 11){
     for(const pu of POWERUPS){
       if(Math.random()<pu.spawnChance){spawnPowerup(pu);return}
     }
@@ -2231,33 +2231,59 @@ function drawCoach() {
     c.flashAlpha = Math.max(0, c.flashAlpha - 0.055);
   }
 
-  // ── PHASE 0: SWIPE TO SLICE (before first slice) ──
-  if (!c.firstSlice) {
-    const target = G.objects.find(o => !o.sliced && !o.isBomb && !o.isPowerup && !o.isBoss && o.y > 80 && o.y < CFG.H*0.78);
-    if (target) c.arrowTarget = {x:target.x, y:target.y};
-    if (c.arrowTarget) coachArrow(c.arrowTarget.x, c.arrowTarget.y, '#ff8c00');
-    coachBanner('SWIPE TO SLICE', 'Fast diagonal swipe across an object', 'rgba(0,0,0,0.80)', '#ff8c00', 108);
-  }
+  // Phases are mutually exclusive — one clear lesson at a time
 
-  // ── PHASE 1: BOMB WARNING ──
+  // ── PHASE 1: BOMB WARNING (takes over screen) ──
   if (c.phase === 1) {
     const bomb = G.objects.find(o => o.isBomb && !o.sliced);
+    // Dark red vignette
+    ctx.save();
+    ctx.fillStyle='rgba(120,0,0,0.35)';ctx.fillRect(0,0,CFG.W,CFG.H);
+    // Spotlight: punch a bright circle around the bomb
     if (bomb) {
+      const sp=bomb.r*2.8, pulse=0.5+Math.sin(now/120)*0.5;
+      const grad=ctx.createRadialGradient(bomb.x,bomb.y,bomb.r*0.5,bomb.x,bomb.y,sp);
+      grad.addColorStop(0,'rgba(255,60,0,0.0)');
+      grad.addColorStop(1,`rgba(140,0,0,${0.55+pulse*0.15})`);
+      ctx.fillStyle=grad;ctx.beginPath();ctx.arc(bomb.x,bomb.y,sp,0,Math.PI*2);ctx.fill();
       coachCross(bomb.x, bomb.y, bomb.r);
-      coachBanner('\u26a0 THAT\'S A BOMB', 'DON\'T SLICE IT  —  3 STRIKES = DEAD', 'rgba(140,0,0,0.88)', '#ffffff', CFG.H*0.42);
     }
+    ctx.restore();
+    coachBanner('⚠ THAT\'S A BOMB', 'DON\'T SLICE IT  ·  3 strikes = GAME OVER', 'rgba(160,0,0,0.93)', '#ff4444', CFG.H*0.38);
+    return;
   }
 
-  // ── PHASE 2: POWER-UP INTRO ──
+  // ── PHASE 2: POWER-UP INTRO (takes over) ──
   if (c.phase === 2 && c.firstPowerup) {
     const pu = G.objects.find(o => o.isPowerup && !o.sliced);
-    if (pu) coachArrow(pu.x, pu.y, '#4af');
-    coachBanner('\u26a1 POWER-UP!', 'SLICE IT  —  slow-mo, wipe, trail & more', 'rgba(0,30,110,0.88)', '#66aaff', CFG.H*0.42);
+    // Blue glow vignette
+    ctx.save();
+    ctx.fillStyle='rgba(0,20,80,0.30)';ctx.fillRect(0,0,CFG.W,CFG.H);
+    if (pu) {
+      const pulse=0.5+Math.sin(now/140)*0.5;
+      const grad=ctx.createRadialGradient(pu.x,pu.y,pu.r*0.5,pu.x,pu.y,pu.r*3.2);
+      grad.addColorStop(0,`rgba(80,160,255,${0.25+pulse*0.2})`);
+      grad.addColorStop(1,'rgba(0,0,80,0.0)');
+      ctx.fillStyle=grad;ctx.beginPath();ctx.arc(pu.x,pu.y,pu.r*3.2,0,Math.PI*2);ctx.fill();
+      coachArrow(pu.x, pu.y, '#44aaff');
+    }
+    ctx.restore();
+    coachBanner('⚡ POWER-UP! SLICE IT', 'Slow-mo · screen wipe · damage trail & more', 'rgba(0,25,100,0.93)', '#66ccff', CFG.H*0.38);
+    return;
   }
 
   // ── PHASE 3: COMBO HINT ──
   if (c.phase === 3) {
-    coachBanner('\ud83d\udd25 COMBO MULTIPLIER!', 'Slice objects fast in a row — score multiplies!', 'rgba(100,45,0,0.88)', '#ffd700', CFG.H*0.42);
+    coachBanner('🔥 COMBO!', 'Slice fast in a row — score multiplies!', 'rgba(100,45,0,0.93)', '#ffd700', CFG.H*0.38);
+    return;
+  }
+
+  // ── PHASE 0: SWIPE TO SLICE (default — until first slice) ──
+  if (!c.firstSlice) {
+    const target = G.objects.find(o => !o.sliced && !o.isBomb && !o.isPowerup && !o.isBoss && o.y > 80 && o.y < CFG.H*0.78);
+    if (target) c.arrowTarget = {x:target.x, y:target.y};
+    if (c.arrowTarget) coachArrow(c.arrowTarget.x, c.arrowTarget.y, '#ff8c00');
+    coachBanner('👆 SWIPE TO SLICE', 'Fast diagonal swipe across an object', 'rgba(0,0,0,0.85)', '#ff9922', CFG.H * 0.22);
   }
 }
 
@@ -2502,25 +2528,26 @@ function loop(ts){
     // --- Coaching timer updates ---
     if(G._coach && G._coach.active){
       const c=G._coach;
-      // Force-spawn a bomb at 9s if one hasn't appeared yet
-      if(!c.forcedBomb && G.time>=9 && !c.firstBomb){
+      // Force-spawn a bomb at 7s if one hasn't appeared yet
+      if(!c.forcedBomb && G.time>=7 && !c.firstBomb){
         c.forcedBomb=true;
         spawnBomb(BOMBS[0]);
       }
-      // Force-spawn a powerup at 14s if one hasn't appeared yet
-      if(!c.forcedPU && G.time>=14 && !c.firstPowerup){
+      // Force-spawn a powerup at 13s if one hasn't appeared yet
+      // (only after first slice so player has learned to swipe)
+      if(!c.forcedPU && G.time>=13 && !c.firstPowerup){
         c.forcedPU=true;
         spawnPowerup(POWERUPS[0]);
       }
-      // Bomb hint timer — auto-dismiss after 4s
+      // Bomb hint timer — auto-dismiss after 5s
       if(c.phase===1){
         c.bombTimer+=gameDt;
-        if(c.bombTimer>=4) { c.phase=0; c.bombTimer=0; }
+        if(c.bombTimer>=5) { c.phase=0; c.bombTimer=0; }
       }
-      // Power-up hint timer — auto-dismiss after 3s
+      // Power-up hint timer — auto-dismiss after 4s
       if(c.phase===2 && c.firstPowerup){
         c.powerupTimer+=gameDt;
-        if(c.powerupTimer>=3) { c.phase=0; c.powerupTimer=0; }
+        if(c.powerupTimer>=4) { c.phase=0; c.powerupTimer=0; }
       }
       // Combo hint (phase 3) — fires at combo 3+, auto-dismiss after 3s
       if(!c.firstComboHinted && G.combo>=3){
