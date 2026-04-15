@@ -49,16 +49,26 @@ html,body{
 }
 #title-screen .sub{color:#aaa;font-size:13px;text-transform:uppercase;letter-spacing:4px;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-/* #title-char-img sits on top of the logo, bottom-right */
-#title-char-img{
-  position:absolute;bottom:-52px;right:10px;
-  width:125px;height:125px;object-fit:contain;
+/* Character peeks from bottom-center of logo — no label, no bg */
+#title-char-wrap{
+  position:absolute;
+  bottom:-42px;
+  left:50%;transform:translateX(-50%);
+  width:220px;
+  height:130px;
+  overflow:hidden;
+  filter:drop-shadow(0 0 20px rgba(255,140,0,0.85));
   cursor:pointer;
-  filter:drop-shadow(0 0 16px rgba(255,140,0,0.75)) drop-shadow(0 2px 8px rgba(0,0,0,0.95));
-  transition:transform 0.12s ease;
   z-index:5;
+  transition:transform 0.12s ease;
 }
-#title-char-img:active{transform:scale(0.88)}
+#title-char-wrap:active{transform:translateX(-50%) scale(0.92)}
+#title-char-img{
+  position:absolute;
+  bottom:0;left:0;
+  width:220px;height:130px;
+  display:block;
+}
 #title-poke{
   color:#ff8c00;font-size:10px;letter-spacing:2px;text-transform:uppercase;
   height:14px;transition:opacity 0.3s;opacity:0;font-family:'Courier New',monospace;
@@ -279,9 +289,11 @@ html,body{
 
 <!-- TITLE -->
 <div class="screen active" id="title-screen">
-  <div style="position:relative;width:82%;max-width:360px;order:0;margin-bottom:62px">
+  <div style="position:relative;width:82%;max-width:360px;order:0;margin-bottom:110px">
     <canvas id="title-logo" width="400" height="260" style="width:100%;display:block;border-radius:12px;box-shadow:0 0 50px rgba(255,140,0,0.35),0 0 100px rgba(255,100,0,0.15)"></canvas>
-    <img id="title-char-img" src="assets/character/smug.png" alt="">
+    <div id="title-char-wrap">
+      <canvas id="title-char-img" width="220" height="130"></canvas>
+    </div>
   </div>
   <div id="title-poke" style="order:1">TAP HIM</div>
   <div class="tagline" style="order:2;margin-top:4px">swipe. slice. survive. share.</div>
@@ -638,44 +650,74 @@ function getExpression() {
   return 'scheming';                           // default: always scheming
 }
 
-// Draw a specific expression using individual PNGs (sheet fallback if missing)
+// Draw a specific expression — always clipped to circle so PNG bg never shows
 function drawCharExpression(expr, x, y, size) {
   const img = assets['expr_' + expr];
   if (img) {
-    ctx.drawImage(img, x - size/2, y - size/2, size, size);
+    // Natural img is 768×512 landscape — we want the face which is roughly center-right
+    // Clip to circle, then draw image centered/zoomed so face fills the circle
+    ctx.save();
+    ctx.beginPath();ctx.arc(x,y,size/2,0,Math.PI*2);ctx.clip();
+    // Draw image larger + offset to zoom on face area (right 60% of width, center height)
+    const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+    // Face region: roughly x=55%-100% width, y=15%-95% height
+    const sx=iw*0.45, sy=ih*0.1, sw=iw*0.55, sh=ih*0.85;
+    ctx.drawImage(img,sx,sy,sw,sh, x-size/2, y-size/2, size, size);
+    ctx.restore();
     return;
   }
   // Sheet fallback
   const sheet = assets.charSheet;
   if (!sheet) return;
+  ctx.save();
+  ctx.beginPath();ctx.arc(x,y,size/2,0,Math.PI*2);ctx.clip();
   const COLS=3,ROWS=2;
   const map={smug:[0,0],panicked:[1,0],furious:[2,0],scheming:[0,1],defeated:[1,1],cracking:[2,1]};
   const [col,row]=map[expr]||[0,0];
   const cw=sheet.width/COLS, ch=sheet.height/ROWS;
   const inset=0.08, sx=cw*col+cw*inset, sy=ch*row+ch*0.2, sw=cw*(1-inset*2), sh=ch*0.75;
   ctx.drawImage(sheet,sx,sy,sw,sh,x-size/2,y-size/2,size,size*(sh/sw));
+  ctx.restore();
 }
 
 // ---- TITLE SCREEN CHARACTER ----
-// Static img — no canvas needed. Tap for panic reaction.
-function startTitleCharAnim() { /* no-op — img is static */ }
+// Canvas-based so we can crop any expression PNG to just the face region
+// Image is 768×512 landscape; character is right-center, label is upper portion
+
+function drawTitleChar(exprKey) {
+  const c = document.getElementById('title-char-img');
+  if (!c || !c.getContext) return;
+  const tc = c.getContext('2d');
+  const W = c.width, H = c.height; // 300 × 150
+  tc.clearRect(0, 0, W, H);
+  const img = assets['expr_' + exprKey];
+  if (!img) return;
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  // Crop: skip top 40% (removes label), show center-right 60% of width
+  const sx = iw * 0.20;   // start 20% from left
+  const sy = ih * 0.38;   // start 38% from top — below label area
+  const sw = iw * 0.60;   // 60% width
+  const sh = ih * 0.62;   // 62% height — rest of image
+  tc.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+}
+
+function startTitleCharAnim() {
+  // Draw initial smug face on canvas
+  drawTitleChar('smug');
+}
 
 function pokeTitleChar() {
-  const img = document.getElementById('title-char-img');
+  drawTitleChar('panicked');
   const poke = document.getElementById('title-poke');
-  // Swap to panicked face
-  if (img && assets['expr_panicked']) {
-    const panicSrc = EXPR_FILES.panicked;
-    img.src = panicSrc;
-    clearTimeout(img._pt);
-    img._pt = setTimeout(() => { img.src = EXPR_FILES.smug; }, 800);
-  }
   if (poke) {
     poke.textContent = "HE'S SCARED. GOOD.";
     poke.style.opacity = '1';
     clearTimeout(poke._t);
     poke._t = setTimeout(() => { poke.style.opacity = '0'; }, 1400);
   }
+  clearTimeout(pokeTitleChar._rt);
+  pokeTitleChar._rt = setTimeout(() => drawTitleChar('smug'), 850);
 }
 
 // ---- COMBO THRESHOLDS ----
@@ -1097,10 +1139,7 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   if (id) document.getElementById(id).classList.add('active');
   // Reset title character to smug when returning to title
-  if (id === 'title-screen') {
-    const tci = document.getElementById('title-char-img');
-    if (tci) tci.src = EXPR_FILES.smug;
-  }
+  if (id === 'title-screen') drawTitleChar('smug');
 }
 
 function renderStageSelect() {
@@ -1874,6 +1913,15 @@ function drawHUD(){
 }
 
 function render(){
+  // When not actively playing, just black out the canvas — HTML screens cover it
+  if(G.state==='dead'||G.state==='won'){
+    ctx.fillStyle='#0a0a14';ctx.fillRect(0,0,CFG.W,CFG.H);
+    return;
+  }
+  if(G.state==='title'){
+    ctx.clearRect(0,0,CFG.W,CFG.H);
+    return;
+  }
   ctx.save();
   if(G.shake>0.3)ctx.translate((Math.random()-0.5)*G.shake,(Math.random()-0.5)*G.shake);
 
@@ -2166,8 +2214,11 @@ async function init(){
       tctx.drawImage(img, 0, 0, tc.width, tc.height);
     }
 
-    // Wire up title character tap reaction (static img — no canvas loop needed)
-    const titleCharEl = document.getElementById('title-char-img');
+    // Draw initial smug face on title canvas
+    drawTitleChar('smug');
+
+    // Wire up title character tap reaction (wrapper div handles events)
+    const titleCharEl = document.getElementById('title-char-wrap');
     if (titleCharEl) {
       titleCharEl.addEventListener('click', e => { e.stopPropagation(); pokeTitleChar(); });
       titleCharEl.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); pokeTitleChar(); }, {passive:false});
