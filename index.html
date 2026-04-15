@@ -282,6 +282,20 @@ html,body{
 #ach-toast .ach-label{color:#ffd700;font-size:9px;font-family:'Arial Black',sans-serif;text-transform:uppercase;letter-spacing:2px;margin-top:2px}
 #ach-toast .ach-name{color:#fff;font-size:13px;font-weight:bold;margin-top:3px}
 @keyframes achIn{0%{opacity:0;transform:translateX(-50%) translateY(-12px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* ---- TUTORIAL OVERHAUL ---- */
+@keyframes btnGlow{
+  0%,100%{box-shadow:0 0 18px rgba(255,140,0,0.6),0 0 40px rgba(255,100,0,0.3),inset 0 0 10px rgba(255,180,0,0.15)}
+  50%{box-shadow:0 0 32px rgba(255,140,0,1),0 0 70px rgba(255,100,0,0.55),inset 0 0 20px rgba(255,200,0,0.25)}
+}
+#btn-tutorial-go{
+  background:#ff8c00;color:#fff;font-size:17px;font-family:'Arial Black',sans-serif;
+  text-transform:uppercase;letter-spacing:3px;
+  padding:15px 40px;border-radius:10px;cursor:pointer;
+  animation:btnGlow 1.4s ease-in-out infinite;
+  border:none;margin-top:8px;
+}
+#btn-tutorial-go:active{background:#cc6600;transform:scale(0.96)}
 </style>
 <script async src="https://vibej.am/2026/widget.js"></script>
 </head>
@@ -356,58 +370,46 @@ html,body{
 </div>
 
 <!-- TUTORIAL -->
-<div class="screen" id="tutorial-screen" style="flex-direction:column;align-items:center;background:rgba(10,10,20,0.96);gap:12px;padding:20px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch">
-  <div style="color:#ff8c00;font-family:'Arial Black',sans-serif;font-size:20px;text-transform:uppercase;letter-spacing:2px;margin-top:10px">HOW TO PLAY</div>
+<div class="screen" id="tutorial-screen" style="flex-direction:column;align-items:center;background:rgba(10,10,20,0.97);gap:8px;padding:16px 14px;overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div style="color:#ff2222;font-family:'Arial Black',Impact,sans-serif;font-size:26px;text-transform:uppercase;letter-spacing:2px;margin-top:6px;text-align:center;text-shadow:0 0 24px rgba(255,40,40,0.6)">THE COUNTRY IS ON FIRE.</div>
+  <div style="color:#fff;font-size:14px;margin-bottom:4px;letter-spacing:1px">You have one job.</div>
 
   <!-- SLICE -->
-  <div style="display:flex;align-items:center;gap:12px;width:100%;max-width:340px;background:rgba(100,255,100,0.05);border:1px solid rgba(100,255,100,0.15);border-radius:10px;padding:12px">
-    <div style="display:flex;gap:6px;flex-shrink:0">
-      <canvas class="tut-icon" data-src="assets/objects/orangeobject.png" width="60" height="60" style="width:44px;height:44px;border-radius:50%;border:2px solid #66ff66"></canvas>
-      <canvas class="tut-icon" data-src="assets/objects/tariffobject.png" width="60" height="60" style="width:44px;height:44px;border-radius:50%;border:2px solid #66ff66"></canvas>
-      <canvas class="tut-icon" data-src="assets/objects/truthobject.png" width="60" height="60" style="width:44px;height:44px;border-radius:50%;border:2px solid #66ff66"></canvas>
+  <div style="display:flex;align-items:center;gap:10px;width:100%;max-width:340px;background:rgba(100,255,100,0.05);border:1px solid rgba(100,255,100,0.18);border-radius:8px;padding:8px 10px">
+    <div style="display:flex;gap:5px;flex-shrink:0">
+      <canvas class="tut-icon" data-src="assets/objects/orangeobject.png" width="60" height="60" style="width:38px;height:38px;border-radius:50%;border:2px solid #66ff66"></canvas>
+      <canvas class="tut-icon" data-src="assets/objects/tariffobject.png" width="60" height="60" style="width:38px;height:38px;border-radius:50%;border:2px solid #66ff66"></canvas>
+      <canvas class="tut-icon" data-src="assets/objects/truthobject.png" width="60" height="60" style="width:38px;height:38px;border-radius:50%;border:2px solid #66ff66"></canvas>
     </div>
-    <div><div style="color:#66ff66;font-size:14px;font-weight:bold">SLICE THESE</div><div style="color:#aaa;font-size:11px;margin-top:3px">Swipe to slice. Each has a real quote.</div></div>
+    <div><div style="color:#66ff66;font-size:13px;font-weight:bold;letter-spacing:1px">SLICE THESE</div><div style="color:#aaa;font-size:10px;margin-top:2px">Swipe fast. Each has a real quote.</div></div>
   </div>
 
   <!-- DON'T SLICE -->
-  <div style="display:flex;align-items:center;gap:12px;width:100%;max-width:340px;background:rgba(255,50,50,0.05);border:1px solid rgba(255,50,50,0.15);border-radius:10px;padding:12px">
-    <div style="display:flex;gap:6px;flex-shrink:0">
-      <canvas class="tut-icon" data-src="assets/objects/secretobject.png" width="60" height="60" style="width:44px;height:44px;border-radius:50%;border:2px solid #ff3333"></canvas>
-      <canvas class="tut-icon" data-src="assets/objects/tankerobject.png" width="60" height="60" style="width:44px;height:44px;border-radius:50%;border:2px solid #ff3333"></canvas>
+  <div style="display:flex;align-items:center;gap:10px;width:100%;max-width:340px;background:rgba(255,50,50,0.05);border:1px solid rgba(255,50,50,0.18);border-radius:8px;padding:8px 10px">
+    <div style="display:flex;gap:5px;flex-shrink:0">
+      <canvas class="tut-icon" data-src="assets/objects/secretobject.png" width="60" height="60" style="width:38px;height:38px;border-radius:50%;border:2px solid #ff3333"></canvas>
+      <canvas class="tut-icon" data-src="assets/objects/tankerobject.png" width="60" height="60" style="width:38px;height:38px;border-radius:50%;border:2px solid #ff3333"></canvas>
     </div>
-    <div><div style="color:#ff3333;font-size:14px;font-weight:bold">DON'T SLICE</div><div style="color:#aaa;font-size:11px;margin-top:3px">Bombs! 3 strikes = dead.</div></div>
+    <div><div style="color:#ff3333;font-size:13px;font-weight:bold;letter-spacing:1px">DON'T SLICE</div><div style="color:#aaa;font-size:10px;margin-top:2px">Bombs. 3 strikes = you're dead.</div></div>
   </div>
 
   <!-- POWER-UPS -->
-  <div style="display:flex;align-items:center;gap:12px;width:100%;max-width:340px;background:rgba(68,136,255,0.05);border:1px solid rgba(68,136,255,0.15);border-radius:10px;padding:12px">
-    <div style="display:flex;gap:6px;flex-shrink:0">
-      <canvas class="tut-icon" data-src="assets/powerups/subpoenabuff.png" width="60" height="60" style="width:44px;height:44px;border-radius:50%;border:2px solid #4488ff"></canvas>
-      <canvas class="tut-icon" data-src="assets/powerups/constitutionbuff.png" width="60" height="60" style="width:44px;height:44px;border-radius:50%;border:2px solid #ffd700"></canvas>
-      <canvas class="tut-icon" data-src="assets/powerups/protestbuff.png" width="60" height="60" style="width:44px;height:44px;border-radius:50%;border:2px solid #ff4444"></canvas>
+  <div style="display:flex;align-items:center;gap:10px;width:100%;max-width:340px;background:rgba(68,136,255,0.05);border:1px solid rgba(68,136,255,0.18);border-radius:8px;padding:8px 10px">
+    <div style="display:flex;gap:5px;flex-shrink:0">
+      <canvas class="tut-icon" data-src="assets/powerups/subpoenabuff.png" width="60" height="60" style="width:38px;height:38px;border-radius:50%;border:2px solid #4488ff"></canvas>
+      <canvas class="tut-icon" data-src="assets/powerups/constitutionbuff.png" width="60" height="60" style="width:38px;height:38px;border-radius:50%;border:2px solid #ffd700"></canvas>
+      <canvas class="tut-icon" data-src="assets/powerups/protestbuff.png" width="60" height="60" style="width:38px;height:38px;border-radius:50%;border:2px solid #ff4444"></canvas>
     </div>
-    <div><div style="color:#4488ff;font-size:14px;font-weight:bold">POWER-UPS</div><div style="color:#aaa;font-size:11px;margin-top:3px">Slice for slow-mo, wipe, or trail damage.</div></div>
+    <div><div style="color:#4488ff;font-size:13px;font-weight:bold;letter-spacing:1px">POWER-UPS</div><div style="color:#aaa;font-size:10px;margin-top:2px">Slow-mo, wipe, or trail damage.</div></div>
   </div>
 
-  <!-- METERS -->
-  <div style="width:100%;max-width:340px;margin-top:4px">
-    <div style="color:#fff;font-size:12px;font-weight:bold;text-align:center;margin-bottom:8px">MISS TOO MANY = METER OVERLOAD</div>
-    <div style="display:flex;gap:6px;justify-content:center">
-      <div style="flex:1;background:rgba(255,50,50,0.08);border:1px solid rgba(255,50,50,0.2);border-radius:8px;padding:8px;text-align:center">
-        <div style="color:#ff3333;font-size:12px;font-weight:bold">WAR</div>
-        <div style="color:#aaa;font-size:9px;margin-top:3px">Mines, drones, blockades, airstrikes</div>
-      </div>
-      <div style="flex:1;background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.15);border-radius:8px;padding:8px;text-align:center">
-        <div style="color:#ffd700;font-size:12px;font-weight:bold">ECON</div>
-        <div style="color:#aaa;font-size:9px;margin-top:3px">Tariffs, DOGE, stock crashes, deficits</div>
-      </div>
-      <div style="flex:1;background:rgba(255,140,0,0.06);border:1px solid rgba(255,140,0,0.15);border-radius:8px;padding:8px;text-align:center">
-        <div style="color:#ff8c00;font-size:12px;font-weight:bold">SCANDAL</div>
-        <div style="color:#aaa;font-size:9px;margin-top:3px">Exec orders, leaks, Epstein files, pardons</div>
-      </div>
-    </div>
+  <!-- METERS — compressed one-liner -->
+  <div style="width:100%;max-width:340px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;text-align:center">
+    <div style="color:#ccc;font-size:11px;line-height:1.4">Miss too many &rarr; meter explodes &rarr; <span style="color:#ff4444;font-weight:bold">you're dead.</span></div>
   </div>
 
-  <div id="btn-tutorial-go" style="color:#aaa;font-size:12px;text-transform:uppercase;letter-spacing:3px;animation:pulse 2s infinite;margin-top:6px;padding:12px 36px;border:2px solid rgba(255,140,0,0.4);border-radius:8px;cursor:pointer;background:rgba(255,140,0,0.06)">TAP TO BEGIN</div>
+  <div style="color:#888;font-size:10px;font-style:italic;margin-top:2px;text-align:center">"I take no responsibility whatsoever." — someone</div>
+  <div id="btn-tutorial-go">UNLEASH HELL &rarr;</div>
 </div>
 
 <!-- WIN -->
@@ -1161,6 +1163,16 @@ const G = {
   _facePop:0, _facePopDir:-1,
   // Boss fight state
   bossActive:false, bossTriggered:{},
+  // Coaching system
+  _coach: {
+    active: false,
+    phase: 0,
+    firstSlice: false,
+    firstBomb: false,
+    firstComboHinted: false,
+    arrowTarget: null,
+    flashAlpha: 0,
+  },
 };
 
 // ---- HELPERS ----
@@ -1317,11 +1329,15 @@ function launchPos(){
 }
 
 function spawnObj(){
-  // Bombs
-  for(const b of BOMBS){if(Math.random()<b.rarity){spawnBomb(b);return}}
-  // Power-ups (rare)
-  for(const pu of POWERUPS){
-    if(Math.random()<pu.spawnChance){spawnPowerup(pu);return}
+  // Bombs — suppressed for first 8s during coaching
+  if(!G._coach?.active || G.time >= 8){
+    for(const b of BOMBS){if(Math.random()<b.rarity){spawnBomb(b);return}}
+  }
+  // Power-ups (rare) — suppressed during first 8s coaching too
+  if(!G._coach?.active || G.time >= 8){
+    for(const pu of POWERUPS){
+      if(Math.random()<pu.spawnChance){spawnPowerup(pu);return}
+    }
   }
   // Specials
   for(const sp of SPECIALS){
@@ -1377,6 +1393,10 @@ function spawnBomb(b){
   G.objects.push({...best,r:CFG.OBJ_R+4,rot:0,rotV:rng(-4,4),sliced:false,missed:false,isBomb:true,
     bombDef:b,label:b.label,sprite:b.sprite,meter:null,meterImpact:0,pts:0,
     st:0,lx:0,ly:0,lvx:0,lvy:0,lr:0,lrv:0,rx:0,ry:0,rvx:0,rvy:0,rr:0,rrv:0});
+  if(G._coach && G._coach.active && !G._coach.firstBomb){
+    G._coach.firstBomb = true;
+    G._coach.phase = 1;
+  }
 }
 
 // ---- BOSS SYSTEM ----
@@ -1581,6 +1601,13 @@ function sliceObj(o,angle){
   const pts=o.pts*Math.min(G.combo,15);G.score+=pts;G.slices++;
   G.shake=4+Math.min(G.combo,12)*0.6;
   G._facePop=1.0;G._facePopDir=-1; // trigger face pop on every slice
+  if(G._coach && G._coach.active && !G._coach.firstSlice){
+    G._coach.firstSlice = true;
+    G._coach.flashAlpha = 1.0;
+    spawnParticles(o.x, o.y, 20, o.sprite);
+    G.shake = 18;
+    G.popups.push({x:CFG.W/2, y:CFG.H*0.35, text:'HELL YEAH!', life:1.8, max:1.8, col:'#ff8c00', size:32});
+  }
   spawnParticles(o.x,o.y,G.combo,o.sprite);spawnPopup(o.x,o.y,pts,G.combo);sndSlice(G.combo);
 
   // Track recent slices for themed combos
@@ -2118,6 +2145,106 @@ function drawHUD(){
   }
 }
 
+function drawCoach() {
+  const c = G._coach;
+  if (!c || !c.active) return;
+
+  const now = performance.now();
+
+  // White flash on first slice
+  if (c.flashAlpha > 0) {
+    ctx.save();
+    ctx.fillStyle = `rgba(255,255,255,${c.flashAlpha})`;
+    ctx.fillRect(0, 0, CFG.W, CFG.H);
+    ctx.restore();
+    c.flashAlpha = Math.max(0, c.flashAlpha - 0.06);
+  }
+
+  // Phase 0: "SWIPE TO SLICE" hint — before first slice
+  if (!c.firstSlice) {
+    const target = G.objects.find(o => !o.sliced && !o.isBomb && !o.isPowerup && o.y > 100 && o.y < CFG.H * 0.75);
+    if (target) {
+      c.arrowTarget = {x: target.x, y: target.y};
+    }
+    if (c.arrowTarget) {
+      const ax = c.arrowTarget.x;
+      const ay = c.arrowTarget.y;
+      const pulse = 0.7 + Math.sin(now / 180) * 0.3;
+
+      ctx.save();
+      ctx.globalAlpha = pulse;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = '#ff8c00';
+      ctx.shadowBlur = 12;
+      const len = 55;
+      ctx.beginPath();
+      ctx.moveTo(ax - len * 0.5, ay - len * 0.4);
+      ctx.lineTo(ax + len * 0.5, ay + len * 0.4);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(ax + len * 0.5, ay + len * 0.4);
+      ctx.lineTo(ax + len * 0.5 - 16, ay + len * 0.4 - 4);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(ax + len * 0.5, ay + len * 0.4);
+      ctx.lineTo(ax + len * 0.5 - 4, ay + len * 0.4 - 16);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    const tp = 0.6 + Math.sin(now / 300) * 0.35;
+    ctx.save();
+    ctx.globalAlpha = tp;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, CFG.H * 0.12 - 18, CFG.W, 36);
+    ctx.fillStyle = '#ff8c00';
+    ctx.font = 'bold 18px Arial Black, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 6;
+    ctx.fillText('SWIPE TO SLICE', CFG.W / 2, CFG.H * 0.12 + 7);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  // Phase 1: Bomb warning — after first bomb appears
+  if (c.phase === 1 && c.firstBomb) {
+    const bomb = G.objects.find(o => o.isBomb && !o.sliced);
+    if (bomb) {
+      const wp = 0.8 + Math.sin(now / 100) * 0.2;
+      ctx.save();
+      ctx.globalAlpha = wp;
+      ctx.fillStyle = '#ff2222';
+      ctx.font = 'bold 14px Arial Black, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 8;
+      ctx.fillText('\u26a0 DON\'T SLICE THIS', bomb.x, bomb.y - bomb.r - 22);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    } else if (c.firstSlice) {
+      c.phase = 0;
+    }
+  }
+
+  // Phase 2: Combo hint
+  if (c.phase === 2 && !c.firstComboHinted) {
+    const cp = 0.7 + Math.sin(now / 150) * 0.25;
+    ctx.save();
+    ctx.globalAlpha = cp;
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 15px Arial Black, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 6;
+    ctx.fillText('CHAIN THEM FOR COMBO!', CFG.W / 2, CFG.H * 0.20);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+}
+
 function render(){
   // When not actively playing, just black out the canvas — HTML screens cover it
   if(G.state==='dead'||G.state==='won'){
@@ -2162,7 +2289,7 @@ function render(){
   // Distortion: flip screen
   if(G.distortion&&G.distortion.effect==='flip'){ctx.translate(CFG.W,CFG.H);ctx.rotate(Math.PI);}
 
-  drawParticles();drawTrail();drawPopups();drawQuoteFlashes();drawBombMsgs();drawMeters();drawHUD();drawTicker();
+  drawParticles();drawTrail();drawPopups();drawQuoteFlashes();drawBombMsgs();drawMeters();drawCoach();drawHUD();drawTicker();
 
   // Combo announcement (big center text)
   if(G.comboAnnounce){
@@ -2320,6 +2447,12 @@ async function startPlaying(){
   G.accountabilityFull=false;G.handcuffsTimer=0;
   G._sessionSlices=[];G._alarmTimer=0;
   G.bossActive=false;G.bossTriggered={};
+  // Coaching system
+  G._coach = {
+    active: !localStorage.getItem('oof_played_before'),
+    phase: 0, firstSlice: false, firstBomb: false,
+    firstComboHinted: false, arrowTarget: null, flashAlpha: 0
+  };
   // Ticker
   G._tickerFull=TICKER_HEADLINES.join('  ◆  ');
   G._tickerX=CFG.W; // start off-screen right
@@ -2342,6 +2475,14 @@ function loop(ts){
     G.time+=gameDt;G.spawnTimer-=gameDt;
     if(G.spawnTimer<=0){spawnObj();G.spawnTimer=spawnInterval()}
     if(G.combo>0){G.comboTimer-=gameDt;if(G.comboTimer<=0){G.combo=0;G.recentSlices=[];}}
+    if(G._coach && G._coach.active && !G._coach.firstComboHinted && G.combo >= 3){
+      G._coach.firstComboHinted = true;
+      G._coach.phase = 2;
+    }
+    if(G._coach && G._coach.active && G.time >= 30){
+      G._coach.active = false;
+      localStorage.setItem('oof_played_before', '1');
+    }
     if(G.shake>0)G.shake*=Math.pow(0.05,dt);
     for(let i=G.trail.length-1;i>=0;i--){G.trail[i].life-=dt;if(G.trail[i].life<=0)G.trail.splice(i,1)}
 
