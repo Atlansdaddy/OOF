@@ -214,6 +214,39 @@ html,body{
   text-transform:uppercase;border:none;border-radius:8px;cursor:pointer;
   background:rgba(255,255,255,0.1);color:#aaa;margin-top:8px;
 }
+
+/* ---- WIN SCREEN ---- */
+#win-screen{
+  flex-direction:column;align-items:center;
+  background-color:#0a0a14;background-size:cover;background-position:center;
+  overflow-y:auto;padding:30px 20px 30px;gap:10px;
+  -webkit-overflow-scrolling:touch;
+}
+#win-screen .win-headline{
+  color:#ffd700;font-family:'Arial Black',Impact,sans-serif;
+  font-size:22px;text-transform:uppercase;text-align:center;letter-spacing:3px;
+  text-shadow:0 0 30px rgba(255,215,0,0.8),0 2px 4px rgba(0,0,0,0.9);
+  animation:pulse 1.5s infinite;
+}
+#win-screen .win-sub{color:#fff;font-size:12px;letter-spacing:2px;text-transform:uppercase;text-shadow:0 0 10px rgba(255,255,255,0.4)}
+#win-screen .watn-title{color:#ff8c00;font-family:'Courier New',monospace;font-size:11px;text-transform:uppercase;letter-spacing:3px;margin-top:6px}
+.watn-entry{width:100%;max-width:340px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,215,0,0.12);border-radius:8px;padding:9px 12px}
+.watn-name{color:#ffd700;font-size:12px;font-weight:bold}
+.watn-fate{color:#ccc;font-size:11px;margin-top:2px;line-height:1.4;font-style:italic}
+#win-screen .win-stats{color:#66ff66;font-family:'Courier New',monospace;font-size:11px;text-align:left;line-height:1.5;white-space:pre;text-shadow:0 0 6px rgba(100,255,100,0.3);background:rgba(0,0,0,0.5);padding:8px 12px;border-radius:6px}
+#win-screen .btn-row{display:flex;gap:12px;margin-top:4px}
+
+/* ---- ACHIEVEMENT TOAST ---- */
+#ach-toast{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%);
+  background:rgba(10,10,20,0.97);border:2px solid #ffd700;border-radius:10px;
+  padding:10px 20px;z-index:200;display:none;min-width:200px;text-align:center;
+  box-shadow:0 0 20px rgba(255,215,0,0.4);animation:achIn 0.3s ease;
+}
+#ach-toast .ach-icon{font-size:18px}
+#ach-toast .ach-label{color:#ffd700;font-size:9px;font-family:'Arial Black',sans-serif;text-transform:uppercase;letter-spacing:2px;margin-top:2px}
+#ach-toast .ach-name{color:#fff;font-size:13px;font-weight:bold;margin-top:3px}
+@keyframes achIn{0%{opacity:0;transform:translateX(-50%) translateY(-12px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 <script async src="https://vibej.am/2026/widget.js"></script>
 </head>
@@ -224,7 +257,7 @@ html,body{
   <canvas id="title-logo" width="400" height="260" style="width:85%;max-width:380px;margin-bottom:24px;order:0"></canvas>
   <div class="tagline" style="order:1">swipe. slice. survive. share.</div>
   <div class="sub" style="padding:16px 50px;border:2px solid rgba(255,140,0,0.5);border-radius:10px;font-size:16px;letter-spacing:4px;cursor:pointer;background:rgba(255,140,0,0.1);margin-top:14px;order:2">START</div>
-  <div class="version" style="position:static;margin-top:16px;order:3">v0.4 — #OrangeFury</div>
+  <div class="version" style="position:static;margin-top:16px;order:3">v0.5 — #OrangeFury</div>
 </div>
 
 <!-- STAGE SELECT -->
@@ -335,11 +368,32 @@ html,body{
   <div id="btn-tutorial-go" style="color:#aaa;font-size:12px;text-transform:uppercase;letter-spacing:3px;animation:pulse 2s infinite;margin-top:6px;padding:12px 36px;border:2px solid rgba(255,140,0,0.4);border-radius:8px;cursor:pointer;background:rgba(255,140,0,0.06)">TAP TO BEGIN</div>
 </div>
 
+<!-- WIN -->
+<div class="screen" id="win-screen">
+  <div class="win-headline">⚖️ ACCOUNTABILITY ACHIEVED</div>
+  <div class="win-sub">the orange has been sliced</div>
+  <div class="watn-title">— WHERE ARE THEY NOW —</div>
+  <div id="watn-list"></div>
+  <div class="win-stats" id="win-stats"></div>
+  <button class="btn-share" id="btn-win-share">SHARE THE VERDICT</button>
+  <div class="btn-row">
+    <button class="btn-stages" id="btn-win-stages">STAGES</button>
+    <button class="btn-replay" id="btn-win-replay">PLAY AGAIN</button>
+  </div>
+</div>
+
+<!-- ACHIEVEMENT TOAST -->
+<div id="ach-toast">
+  <div class="ach-icon">🏆</div>
+  <div class="ach-label">ACHIEVEMENT UNLOCKED</div>
+  <div class="ach-name" id="ach-toast-name"></div>
+</div>
+
 <canvas id="game"></canvas>
 
 <script>
 // ============================================================
-//  ORANGE FURY — v0.3 (Phase 3: Stages + Persistence)
+//  ORANGE FURY — v0.5 (Phase 6: Win Condition + Polish)
 // ============================================================
 
 // ---- STAGES CONFIG ----
@@ -635,6 +689,45 @@ const DISTORTIONS = [
   {name:'GOVERNMENT SHUTDOWN', effect:'ui_drift', duration:4},
 ];
 
+// ---- ACHIEVEMENTS ----
+const ACHIEVEMENTS = [
+  {id:'first_blood',    name:'First Blood',           desc:'Slice your first object'},
+  {id:'combo_5',        name:'On a Roll',              desc:'Hit 5x combo'},
+  {id:'combo_10',       name:'Congressional Hearing',  desc:'Hit 10x combo'},
+  {id:'combo_20',       name:'Impeachment Mode',       desc:'Hit 20x combo'},
+  {id:'combo_50',       name:'Full Conviction',        desc:'Hit the legendary 50x combo'},
+  {id:'signalgate',     name:'Signalgate',             desc:'Slice Signal Leak + War Plans in one run'},
+  {id:'coverup',        name:'Evidence Room',          desc:'Slice Epstein File + Bondi Brief in one run'},
+  {id:'trade_war',      name:'Trade War Veteran',      desc:'Trigger Trade War Triple combo'},
+  {id:'efficiency',     name:'DOGE Auditor',           desc:'Trigger Efficiency Disaster combo'},
+  {id:'minute_man',     name:'Minute Man',             desc:'Survive 60 seconds'},
+  {id:'iron_resolve',   name:'Iron Resolve',           desc:'Survive 120 seconds in one run'},
+  {id:'high_roller',    name:'High Roller',            desc:'Win an $OJT bet'},
+  {id:'wrong_bet',      name:'Wrong Bet',              desc:'Lose an $OJT bet'},
+  {id:'stage_master',   name:'Stage Master',           desc:'Play all 7 stages'},
+  {id:'meltdown_60',    name:'Meltdown Survivor',      desc:'Survive 60s in The Meltdown'},
+  {id:'hat_3',          name:'Wardrobe of Chaos',      desc:'Own 3 or more hats'},
+  {id:'accountability', name:'ACCOUNTABILITY',         desc:'Slice the handcuffs. Win the game.'},
+];
+
+// ---- WHERE ARE THEY NOW ----
+const WHERE_ARE_THEY_NOW = [
+  {name:'Donald Trump',    fate:'"Total exoneration" denied. Detained pending trial. Tweeting from a government-issued phone.'},
+  {name:'Elon Musk',       fate:'DOGE disbanded after audit reveals $0 in documented savings. Back to launching rockets. Tesla up 3%.'},
+  {name:'Pete Hegseth',    fate:'Resigned. Writing memoir: "Those Were Real War Plans." Signal chat preserved as Exhibit A.'},
+  {name:'Pam Bondi',       fate:'Cooperating with investigators. Epstein files released in full. Currently reading all 2.5 million pages.'},
+  {name:'The Signal Chat', fate:'Preserved as government exhibit. Rated 4.7 stars on App Store by journalists. Category: Evidence.'},
+  {name:'Netanyahu',       fate:'On 9th state visit to DC. Gaza Riviera still in planning phase. Ceasefire holding... for now.'},
+  {name:'The Tariff Chart',fate:'"Not actual tariff rates" confirmed by 47 nations. Retired to the Smithsonian Modern Nonsense wing.'},
+  {name:'Kid Rock',        fate:'Ticket scalping executive order overturned. Resumed career performing at state fairs and sentencing hearings.'},
+];
+
+// ---- HANDCUFFS OBJECT ----
+const HANDCUFFS_DEF = {
+  id:'handcuffs', label:'THE CUFFS', sprite:'handcuffs', pts:10000,
+  quote:'"No one is above the law."', src:'Federal Court, 2026',
+};
+
 const SPRITE_MAP = {
   orange:'assets/objects/orangeobject.png', secret:'assets/objects/secretobject.png',
   tanker:'assets/objects/tankerobject.png', mine:'assets/objects/mineobject.png',
@@ -642,6 +735,7 @@ const SPRITE_MAP = {
   tariff:'assets/objects/tariffobject.png', signal:'assets/objects/signalobject.png',
   file:'assets/objects/fileobject.png', truth:'assets/objects/truthobject.png',
   riviera:'assets/objects/rivieraobject.png', execorder:'assets/objects/execorderobject.png',
+  handcuffs:'assets/screens/accountability.png',
 };
 const METER_COLORS = {war:'#ff3333',econ:'#ffd700',scandal:'#ff8c00'};
 const METER_LABELS = {war:'WAR',econ:'ECON',scandal:'SCANDAL'};
@@ -730,6 +824,63 @@ function sndMiss(){if(!ac)return;const t=ac.currentTime;const o=ac.createOscilla
 function sndBomb(){if(!ac)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='square';o.frequency.setValueAtTime(220,t);o.frequency.setValueAtTime(180,t+0.05);o.frequency.setValueAtTime(220,t+0.1);const g=ac.createGain();g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.3);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.3);const o2=ac.createOscillator();o2.type='sine';o2.frequency.setValueAtTime(50,t);o2.frequency.exponentialRampToValueAtTime(25,t+0.4);const g2=ac.createGain();g2.gain.setValueAtTime(0.25,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.4);o2.connect(g2);g2.connect(ac.destination);o2.start(t);o2.stop(t+0.4)}
 function sndMeterWarn(){if(!ac)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(440,t);o.frequency.setValueAtTime(520,t+0.08);const g=ac.createGain();g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.15)}
 
+// ---- TENSION DRONE ----
+let _droneOsc=null,_droneGain=null,_droneLfo=null,_droneLfoGain=null,_droneActive=false;
+function startDrone(){
+  if(!ac||_droneActive)return;
+  _droneOsc=ac.createOscillator();_droneOsc.type='sine';_droneOsc.frequency.value=55;
+  _droneLfo=ac.createOscillator();_droneLfo.type='sine';_droneLfo.frequency.value=0.35;
+  _droneLfoGain=ac.createGain();_droneLfoGain.gain.value=6;
+  _droneLfo.connect(_droneLfoGain);_droneLfoGain.connect(_droneOsc.frequency);
+  _droneGain=ac.createGain();_droneGain.gain.value=0;
+  _droneOsc.connect(_droneGain);_droneGain.connect(ac.destination);
+  _droneOsc.start();_droneLfo.start();_droneActive=true;
+}
+function stopDrone(){
+  if(!_droneActive||!_droneGain)return;
+  try{_droneGain.gain.setTargetAtTime(0,ac.currentTime,0.4);
+  setTimeout(()=>{try{_droneOsc.stop();_droneLfo.stop();}catch(e){}
+  _droneOsc=null;_droneGain=null;_droneLfo=null;_droneLfoGain=null;_droneActive=false;},600);}
+  catch(e){_droneActive=false;}
+}
+function updateDrone(maxMeter){
+  if(!ac)return;
+  if(maxMeter>0.68&&!_droneActive)startDrone();
+  if(_droneActive&&_droneGain){
+    const vol=maxMeter>0.68?Math.pow((maxMeter-0.68)/0.32,1.8)*0.16:0;
+    _droneGain.gain.setTargetAtTime(vol,ac.currentTime,0.4);
+    if(maxMeter<0.55)stopDrone();
+  }
+}
+function sndAlarmPulse(){
+  if(!ac)return;const t=ac.currentTime;
+  const o=ac.createOscillator();o.type='square';o.frequency.setValueAtTime(900,t);o.frequency.setValueAtTime(680,t+0.07);
+  const g=ac.createGain();g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+  o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.18);
+}
+function sndComboChime(level){
+  if(!ac)return;const t=ac.currentTime;
+  // Musical notes: C5, E5, G5, C6, E6 for combo levels 1-5
+  const freqs=[0,523,659,784,1047,1319];
+  const f=freqs[Math.min(level,freqs.length-1)];if(!f)return;
+  const o=ac.createOscillator();o.type='sine';o.frequency.value=f;
+  const g=ac.createGain();g.gain.setValueAtTime(0.14,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.45);
+  o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.5);
+  const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=f*1.5;
+  const g2=ac.createGain();g2.gain.setValueAtTime(0.05,t+0.05);g2.gain.exponentialRampToValueAtTime(0.001,t+0.35);
+  o2.connect(g2);g2.connect(ac.destination);o2.start(t+0.05);o2.stop(t+0.4);
+}
+function sndWinFanfare(){
+  if(!ac)return;const t=ac.currentTime;
+  const notes=[523,659,784,1047,784,1047,1319,1568];
+  notes.forEach((f,i)=>{
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=f;
+    const g=ac.createGain();g.gain.setValueAtTime(0,t+i*0.1);g.gain.linearRampToValueAtTime(0.18,t+i*0.1+0.04);
+    g.gain.exponentialRampToValueAtTime(0.001,t+i*0.1+0.55);
+    o.connect(g);g.connect(ac.destination);o.start(t+i*0.1);o.stop(t+i*0.1+0.6);
+  });
+}
+
 // ---- GAME STATE ----
 const G = {
   state:'title', score:0, time:0, spawnTimer:0,
@@ -748,6 +899,12 @@ const G = {
   distortionTimer:0, // countdown to next distortion
   distortion:null,   // {effect, remaining, name}
   currentStage:'oval',
+  // Phase 6 — Accountability
+  accountability:{signal:false,coverup:false,bondi:false,court:false,survival:false},
+  accountabilityFull:false,
+  handcuffsTimer:0,
+  _sessionSlices:[],  // every content ID sliced this session (for achievement checks)
+  _alarmTimer:0,
 };
 
 // ---- HELPERS ----
@@ -970,6 +1127,8 @@ function updateObjs(dt){
         if(o.boomerangPhase>1.2&&o.vy>0){o.vy=-Math.abs(o.origVy)*0.7;o.vx=-o.origVx*0.5;} // return
       }
     }
+    // Handcuffs: gentle wide zigzag
+    if(o.isHandcuffs){o.zigzagPhase+=dt*4;o.x+=Math.sin(o.zigzagPhase)*4.5;}
     if(!o.missed&&o.y>CFG.H+o.r*2&&o.vy>0){
       o.missed=true;
       if(!o.isBomb&&o.meter){G.meters[o.meter]=Math.min(CFG.METER_MAX,G.meters[o.meter]+o.meterImpact);G.misses++;G.combo=0;sndMiss()}
@@ -979,6 +1138,18 @@ function updateObjs(dt){
 }
 
 function sliceObj(o,angle){
+  // Handcuffs — win condition
+  if(o.isHandcuffs){
+    o.sliced=true;o.st=0;
+    o.lx=o.x;o.ly=o.y;o.lvx=o.vx-50;o.lvy=o.vy-110;o.lr=0;o.lrv=-5;
+    o.rx=o.x;o.ry=o.y;o.rvx=o.vx+50;o.rvy=o.vy-110;o.rr=0;o.rrv=5;
+    G.score+=HANDCUFFS_DEF.pts;G.shake=20;
+    spawnParticles(o.x,o.y,20,'signal');
+    G.comboAnnounce={name:'⚖ JUSTICE SERVED',color:'#ffd700',life:3,max:3};
+    G.popups.push({x:CFG.W/2,y:CFG.H*0.45,text:`+${HANDCUFFS_DEF.pts.toLocaleString()}`,life:2,max:2,col:'#ffd700',size:32});
+    setTimeout(()=>win(),1800);
+    return;
+  }
   if(o.isBomb){sliceBomb(o);return}
 
   // Power-up handling
@@ -1035,18 +1206,36 @@ function sliceObj(o,angle){
     G.recentSlices.push(o.content.id);
     if(G.recentSlices.length>10)G.recentSlices.shift();
     checkThemedCombos();
+    // Accountability conditions
+    const cid=o.content.id;
+    G._sessionSlices.push(cid);
+    if(cid==='signal-leak'||cid==='hegseth-signal')G.accountability.signal=true;
+    if(cid==='epstein-file')G.accountability.coverup=true;
+    if(cid==='bondi-brief'||cid==='bondi-fired')G.accountability.bondi=true;
+    if(cid==='court-block')G.accountability.court=true;
+    checkAccountability();
+    // Per-slice achievements
+    if(G.slices===1)unlockAchievement('first_blood');
+    if(G._sessionSlices.includes('signal-leak')&&G._sessionSlices.includes('hegseth-signal'))unlockAchievement('signalgate');
+    if(G._sessionSlices.includes('epstein-file')&&G._sessionSlices.includes('bondi-brief'))unlockAchievement('coverup');
   }
 
-  // Combo announcement
+  // Combo announcement + chime
   for(let i=COMBO_NAMES.length-1;i>=0;i--){
     if(G.combo===COMBO_NAMES[i].at){
       const cn=COMBO_NAMES[i];
       G.comboAnnounce={name:cn.name,color:cn.color,life:1.5,max:1.5};
       if(cn.slowmo>0)G.slowmo=cn.slowmo;
       G.shake=8+i*3;
+      sndComboChime(i+1);
       break;
     }
   }
+  // Combo achievements
+  if(G.combo>=5)unlockAchievement('combo_5');
+  if(G.combo>=10)unlockAchievement('combo_10');
+  if(G.combo>=20)unlockAchievement('combo_20');
+  if(G.combo>=50)unlockAchievement('combo_50');
 
   // Quote flash
   if(o.content&&o.content.quote&&!G.quoteFlashes.length&&Math.random()<0.4)
@@ -1061,11 +1250,92 @@ function checkThemedCombos(){
       const bonus=500*tc.mult;
       G.score+=bonus;
       G.comboAnnounce={name:tc.name,color:tc.color,life:2,max:2};
-      G.shake=15;
-      G.slowmo=1.5;
+      G.shake=15;G.slowmo=1.5;
       G.popups.push({x:CFG.W/2,y:CFG.H*0.4,text:`+${bonus} x${tc.mult}`,life:1.5,max:1.5,col:tc.color,size:24});
+      if(tc.name==='TRADE WAR TRIPLE')unlockAchievement('trade_war');
+      if(tc.name==='EFFICIENCY DISASTER')unlockAchievement('efficiency');
     }
   }
+}
+
+// ---- ACCOUNTABILITY ----
+function checkAccountability(){
+  const a=G.accountability;
+  const met=Object.values(a).filter(Boolean).length;
+  // Subtle gold glow on canvas — more intense as conditions fill (hidden signal)
+  const gameEl=document.getElementById('game');
+  if(met>=2)gameEl.style.boxShadow=`0 0 ${met*14}px rgba(255,215,0,${met*0.045})`;
+  else gameEl.style.boxShadow='';
+  if(!G.accountabilityFull&&met>=5){
+    G.accountabilityFull=true;
+    G.handcuffsTimer=10;
+    G.bombMsgs.push({text:'⚖ ACCOUNTABILITY\nSLICE THE CUFFS',life:3.5,max:3.5});
+    sndComboChime(5);
+  }
+}
+
+function spawnHandcuffs(){
+  const pos=launchPos();
+  const o={...pos,r:CFG.OBJ_R+10,rot:0,rotV:rng(-3,3),sliced:false,missed:false,isBomb:false,
+    content:{id:'handcuffs',quote:HANDCUFFS_DEF.quote,src:HANDCUFFS_DEF.src},
+    label:HANDCUFFS_DEF.label,sprite:HANDCUFFS_DEF.sprite,meter:null,
+    meterImpact:0,pts:HANDCUFFS_DEF.pts,
+    isHandcuffs:true,special:null,hitsLeft:1,
+    zigzagPhase:Math.random()*Math.PI*2,
+    st:0,lx:0,ly:0,lvx:0,lvy:0,lr:0,lrv:0,rx:0,ry:0,rvx:0,rvy:0,rr:0,rrv:0};
+  o.vy*=0.55; // slower arc — more catchable
+  G.objects.push(o);
+}
+
+// ---- ACHIEVEMENTS ----
+function unlockAchievement(id){
+  if(!save.achievements)save.achievements=[];
+  if(save.achievements.includes(id))return;
+  save.achievements.push(id);
+  writeSave();
+  const def=ACHIEVEMENTS.find(a=>a.id===id);
+  if(!def)return;
+  const toast=document.getElementById('ach-toast');
+  document.getElementById('ach-toast-name').textContent=def.name;
+  toast.style.display='block';
+  clearTimeout(toast._t);
+  toast._t=setTimeout(()=>{toast.style.display='none';},3200);
+}
+
+function checkAchievements(){
+  if(!save.achievements)save.achievements=[];
+  if(STAGE_ORDER.every(k=>save.stages[k].games>0))unlockAchievement('stage_master');
+  const hatCount=(save.unlockedCosmetics||[]).filter(c=>SHOP_HATS.find(h=>h.id===c)).length;
+  if(hatCount>=3)unlockAchievement('hat_3');
+}
+
+// ---- WIN ----
+function win(){
+  if(G.state==='won')return;
+  G.state='won';
+  stopDrone();
+  sndWinFanfare();
+  // Save as a very good run
+  const sd=save.stages[G.currentStage];
+  sd.games++;
+  if(G.score>sd.best){sd.best=G.score;sd.title='THE ACCOUNTANT'}
+  if(G.time>sd.time)sd.time=G.time;
+  save.totalScore+=G.score;save.totalSlices+=G.slices;save.totalGames++;
+  if(G.maxCombo>save.bestCombo)save.bestCombo=G.maxCombo;
+  writeSave();
+  unlockAchievement('accountability');
+  checkAchievements();
+  // Build Where Are They Now list
+  const list=document.getElementById('watn-list');list.innerHTML='';
+  for(const e of WHERE_ARE_THEY_NOW){
+    const d=document.createElement('div');d.className='watn-entry';
+    d.innerHTML=`<div class="watn-name">${e.name}</div><div class="watn-fate">${e.fate}</div>`;
+    list.appendChild(d);
+  }
+  document.getElementById('win-stats').textContent=
+    `Score:          ${G.score.toLocaleString()}\nTime survived:  ${Math.floor(G.time/60)}m ${Math.floor(G.time%60)}s\nOranges sliced: ${G.slices}\nBest combo:     ${G.maxCombo}x\n$OJT balance:   ${save.ojt.toLocaleString()}`;
+  document.getElementById('win-screen').style.backgroundImage=`url('assets/screens/accountabilitybg.png')`;
+  showScreen('win-screen');
 }
 
 function activatePowerup(pu){
@@ -1158,6 +1428,16 @@ document.getElementById('btn-shop').addEventListener('click',()=>{renderShop()})
 document.getElementById('btn-howto').addEventListener('click',(e)=>{e.stopPropagation();showScreen('tutorial-screen');setTimeout(()=>{if(window.drawTutIcons)drawTutIcons();},50);});
 document.getElementById('shop-back').addEventListener('click',()=>{renderStageSelect()});
 
+// Win screen
+document.getElementById('btn-win-replay').addEventListener('click',()=>{showScreen(null);launchStage(G.currentStage)});
+document.getElementById('btn-win-stages').addEventListener('click',()=>{renderStageSelect()});
+document.getElementById('btn-win-share').addEventListener('click',async()=>{
+  const GAME_URL='https://atlansdaddy83.itch.io/operation-orange-annilhiation';
+  const text=`⚖️ I achieved ACCOUNTABILITY in Operation Orange Fury!\nScore: ${G.score.toLocaleString()} | Time survived: ${Math.floor(G.time/60)}m ${Math.floor(G.time%60)}s\n"No one is above the law."\n🔗 ${GAME_URL}\n#OperationOrangeFury #Accountability`;
+  if(navigator.share){try{await navigator.share({title:'Operation: Orange Fury',text});return}catch(e){}}
+  try{await navigator.clipboard.writeText(text);showToast('Copied to clipboard!');}catch(e){showToast('Share copied!');}
+});
+
 // ---- SHARE ----
 document.getElementById('btn-share').addEventListener('click', async ()=>{
   const stage = STAGES[G.currentStage];
@@ -1242,7 +1522,7 @@ function drawObj(o){
   //     const hs=o.r*1.2; ctx.drawImage(hatImg,-hs/2,-hs/2,hs,hs); ctx.restore(); }
   // }
 
-  ctx.fillStyle=o.isBomb?'#ff4444':'#fff';ctx.font=`bold ${o.isBomb?11:10}px Arial,sans-serif`;ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText(o.label,o.x,o.y+o.r+13);ctx.shadowBlur=0;
+  if(!o.isHandcuffs){ctx.fillStyle=o.isBomb?'#ff4444':'#fff';ctx.font=`bold ${o.isBomb?11:10}px Arial,sans-serif`;ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText(o.label,o.x,o.y+o.r+13);ctx.shadowBlur=0;}
   // Bomb: pulsing red danger ring
   if(o.isBomb){
     ctx.beginPath();ctx.arc(o.x,o.y,o.r+6,0,Math.PI*2);
@@ -1259,6 +1539,25 @@ function drawObj(o){
     ctx.beginPath();ctx.arc(o.x,o.y,o.r+14,0,Math.PI*2);
     ctx.strokeStyle=pc;ctx.globalAlpha=pulse*0.4;ctx.lineWidth=2;ctx.stroke();
     ctx.globalAlpha=1;
+  }
+  // Handcuffs: golden justice glow + rotating outer ring
+  if(o.isHandcuffs&&!o.sliced){
+    const t=performance.now();
+    const pulse=0.55+Math.sin(t/220)*0.35;
+    // Inner ring
+    ctx.beginPath();ctx.arc(o.x,o.y,o.r+10,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(255,215,0,${pulse})`;ctx.lineWidth=4;ctx.stroke();
+    // Outer ring
+    ctx.beginPath();ctx.arc(o.x,o.y,o.r+18,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(255,215,0,${pulse*0.35})`;ctx.lineWidth=2;ctx.stroke();
+    // Rotating justice arc
+    const angle=t/600;
+    ctx.beginPath();ctx.arc(o.x,o.y,o.r+14,angle,angle+Math.PI*1.2);
+    ctx.strokeStyle=`rgba(255,255,100,${pulse*0.7})`;ctx.lineWidth=3;ctx.stroke();
+    ctx.globalAlpha=1;
+    // Label override in gold
+    ctx.fillStyle='#ffd700';ctx.font='bold 11px Arial Black,sans-serif';ctx.textAlign='center';
+    ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('⚖ THE CUFFS',o.x,o.y+o.r+15);ctx.shadowBlur=0;
   }
 }
 
@@ -1299,6 +1598,15 @@ function drawHUD(){
   ctx.globalAlpha = 0.85;
   drawCharExpression(expr, faceX, faceY + bounce, faceSize);
   ctx.globalAlpha = 1;
+
+  // Accountability full — golden border + text
+  if(G.accountabilityFull){
+    const ap=0.4+Math.sin(performance.now()/280)*0.3;
+    ctx.strokeStyle=`rgba(255,215,0,${ap})`;ctx.lineWidth=4;ctx.strokeRect(2,2,CFG.W-4,CFG.H-4);
+    ctx.fillStyle=`rgba(255,215,0,${ap*0.9})`;ctx.font='bold 9px Arial Black,sans-serif';
+    ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;
+    ctx.fillText('⚖ SLICE THE CUFFS',CFG.W/2,CFG.H-12);ctx.shadowBlur=0;
+  }
 }
 
 function render(){
@@ -1412,6 +1720,16 @@ function die(){
   if(G.maxCombo>save.bestCombo)save.bestCombo=G.maxCombo;
   writeSave();
 
+  // Achievement checks at death
+  if(G.time>=60)unlockAchievement('minute_man');
+  if(G.time>=120)unlockAchievement('iron_resolve');
+  if(G.currentStage==='meltdown'&&G.time>=60)unlockAchievement('meltdown_60');
+  if(G.betResult&&G.betResult.won&&G.bet)unlockAchievement('high_roller');
+  if(G.betResult&&!G.betResult.won&&G.bet)unlockAchievement('wrong_bet');
+  checkAchievements();
+  stopDrone();
+  document.getElementById('game').style.boxShadow='';
+
   const meterLabel={war:'WAR TENSION OVERLOAD',econ:'ECONOMIC COLLAPSE',scandal:'SCANDAL OVERLOAD'}[meter];
   document.getElementById('death-meter-label').textContent=meterLabel;
   document.getElementById('death-meter-label').style.color=METER_COLORS[meter];
@@ -1474,6 +1792,12 @@ async function startPlaying(){
   // Phase 5 state
   G.slowmo=0;G.comboAnnounce=null;G.recentSlices=[];
   G.powerup=null;G.distortionTimer=CFG.DISTORTION_INTERVAL;G.distortion=null;
+  // Phase 6 state
+  G.accountability={signal:false,coverup:false,bondi:false,court:false,survival:false};
+  G.accountabilityFull=false;G.handcuffsTimer=0;
+  G._sessionSlices=[];G._alarmTimer=0;
+  stopDrone();
+  document.getElementById('game').style.boxShadow='';
   showScreen(null);
 }
 
@@ -1509,6 +1833,22 @@ function loop(ts){
     if(G.distortion){G.distortion.remaining-=dt;if(G.distortion.remaining<=0)G.distortion=null;}
 
     updateObjs(gameDt);updateParticles(dt);updatePopups(dt);updateQuoteFlashes(dt);updateBombMsgs(dt);updateMeters(gameDt);
+
+    // Tension drone — rises as meters fill
+    const maxM=Math.max(G.meters.war,G.meters.econ,G.meters.scandal)/CFG.METER_MAX;
+    updateDrone(maxM);
+    // Alarm pulse at critical danger (>90%)
+    if(maxM>=0.9){G._alarmTimer+=gameDt;if(G._alarmTimer>=1.9){G._alarmTimer=0;sndAlarmPulse();}}
+    else G._alarmTimer=0;
+    // Accountability: survival condition + handcuffs spawn
+    if(G.time>=90&&!G.accountability.survival){G.accountability.survival=true;checkAccountability();}
+    if(G.accountabilityFull){
+      G.handcuffsTimer-=gameDt;
+      if(G.handcuffsTimer<=0){
+        spawnHandcuffs();
+        G.handcuffsTimer=18+rng(0,8); // respawn if missed
+      }
+    }
   }
   render();requestAnimationFrame(loop);
 }
@@ -1520,7 +1860,11 @@ async function init(){
     const loads=Object.entries(SPRITE_MAP).map(([k,v])=>loadImg(k,v));
     const hatLoads=SHOP_HATS.map(h=>loadImg('hat_'+h.id, h.sprite));
     const puLoads=POWERUPS.map(p=>loadImg(p.sprite, p.img));
-    await Promise.all([...loads, ...hatLoads, ...puLoads, loadImg('charSheet', CHAR_SHEET), loadImg('titleLogo', 'assets/title/logo.png')]);
+    await Promise.all([...loads, ...hatLoads, ...puLoads,
+      loadImg('charSheet', CHAR_SHEET),
+      loadImg('titleLogo', 'assets/title/logo.png'),
+      loadImg('winBg', 'assets/screens/accountabilitybg.png'),
+    ]);
     resize();
     G.state='title';
     window.G=G;
