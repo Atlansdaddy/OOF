@@ -52,10 +52,10 @@ html,body{
 /* Character peeks from bottom-center of logo — no label, no bg */
 #title-char-wrap{
   position:absolute;
-  bottom:-42px;
+  bottom:-77px;
   left:50%;transform:translateX(-50%);
   width:220px;
-  height:130px;
+  height:145px;
   overflow:hidden;
   filter:drop-shadow(0 0 20px rgba(255,140,0,0.85));
   cursor:pointer;
@@ -66,7 +66,7 @@ html,body{
 #title-char-img{
   position:absolute;
   bottom:0;left:0;
-  width:220px;height:130px;
+  width:220px;height:145px;
   display:block;
 }
 #title-poke{
@@ -261,7 +261,7 @@ html,body{
 #win-screen .btn-row{display:flex;gap:12px;margin-top:4px}
 
 /* ---- NO ADS TAG ---- */
-#death-screen .no-ads{color:#445566;font-size:9px;letter-spacing:2px;text-transform:uppercase;text-align:center;margin-top:4px}
+#death-screen .no-ads{color:#667788;font-size:10px;letter-spacing:3px;text-transform:uppercase;text-align:center;margin-top:6px;opacity:0.75}
 
 /* ---- MUTE BUTTON ---- */
 #mute-btn{position:fixed;top:10px;right:10px;z-index:200;width:32px;height:32px;
@@ -289,10 +289,10 @@ html,body{
 
 <!-- TITLE -->
 <div class="screen active" id="title-screen">
-  <div style="position:relative;width:82%;max-width:360px;order:0;margin-bottom:110px">
+  <div style="position:relative;width:82%;max-width:360px;order:0;margin-bottom:145px">
     <canvas id="title-logo" width="400" height="260" style="width:100%;display:block;border-radius:12px;box-shadow:0 0 50px rgba(255,140,0,0.35),0 0 100px rgba(255,100,0,0.15)"></canvas>
     <div id="title-char-wrap">
-      <canvas id="title-char-img" width="220" height="130"></canvas>
+      <canvas id="title-char-img" width="220" height="145"></canvas>
     </div>
   </div>
   <div id="title-poke" style="order:1">TAP HIM</div>
@@ -654,14 +654,15 @@ function getExpression() {
 function drawCharExpression(expr, x, y, size) {
   const img = assets['expr_' + expr];
   if (img) {
-    // Natural img is 768×512 landscape — we want the face which is roughly center-right
-    // Clip to circle, then draw image centered/zoomed so face fills the circle
+    // 768×512 landscape, transparent bg. Use same proven crop as title screen.
+    // Dark backing circle so face always pops against game background.
     ctx.save();
-    ctx.beginPath();ctx.arc(x,y,size/2,0,Math.PI*2);ctx.clip();
-    // Draw image larger + offset to zoom on face area (right 60% of width, center height)
+    ctx.beginPath();ctx.arc(x,y,size/2,0,Math.PI*2);
+    ctx.fillStyle='rgba(15,8,2,0.9)';ctx.fill();
+    ctx.clip();
     const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
-    // Face region: roughly x=55%-100% width, y=15%-95% height
-    const sx=iw*0.45, sy=ih*0.1, sw=iw*0.55, sh=ih*0.85;
+    // Proven crop: shows head+hair cleanly (same as title character)
+    const sx=iw*0.20, sy=ih*0.26, sw=iw*0.60, sh=ih*0.74;
     ctx.drawImage(img,sx,sy,sw,sh, x-size/2, y-size/2, size, size);
     ctx.restore();
     return;
@@ -696,9 +697,9 @@ function drawTitleChar(exprKey) {
   const ih = img.naturalHeight || img.height;
   // Crop: skip top 40% (removes label), show center-right 60% of width
   const sx = iw * 0.20;   // start 20% from left
-  const sy = ih * 0.38;   // start 38% from top — below label area
+  const sy = ih * 0.26;   // start 26% from top — below label, keeps hair
   const sw = iw * 0.60;   // 60% width
-  const sh = ih * 0.62;   // 62% height — rest of image
+  const sh = ih * 0.74;   // 74% height — rest of image
   tc.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
 }
 
@@ -1128,6 +1129,8 @@ const G = {
   _tickerX:0, _tickerFull:null,
   // Per-swipe multi-slice tracking
   _swipeSlices:0, _multiSliceTimer:0,
+  // Face pop animation: >0 = face scales up then back (set to 1.0 on trigger)
+  _facePop:0, _facePopDir:-1,
 };
 
 // ---- HELPERS ----
@@ -1434,6 +1437,7 @@ function sliceObj(o,angle){
   G.combo++;G.comboTimer=CFG.COMBO_WINDOW;if(G.combo>G.maxCombo)G.maxCombo=G.combo;
   const pts=o.pts*Math.min(G.combo,15);G.score+=pts;G.slices++;
   G.shake=4+Math.min(G.combo,12)*0.6;
+  G._facePop=1.0;G._facePopDir=-1; // trigger face pop on every slice
   spawnParticles(o.x,o.y,G.combo,o.sprite);spawnPopup(o.x,o.y,pts,G.combo);sndSlice(G.combo);
 
   // Track recent slices for themed combos
@@ -1600,6 +1604,7 @@ function sliceBomb(o){
   const b=o.bombDef;
   G.bombsHit++;
   G.combo=0;G.shake=12;sndBomb();
+  G._facePop=1.0;G._facePopDir=-1; // face reacts to bomb hit
   // Red/yellow explosion particles
   for(let i=0;i<20;i++){const a=rng(0,Math.PI*2),spd=rng(100,250);G.particles.push({x:o.x,y:o.y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,r:rng(3,7),life:0.6,max:0.6,col:b.penalty==='all'?'#ff0000':'#ffcc00',grav:false})}
   // 3 bombs = dead, period
@@ -1845,23 +1850,28 @@ function drawBombMsgs(){for(const m of G.bombMsgs){const a=m.life/m.max;ctx.glob
 // ---- NEWS TICKER ----
 function drawTicker(){
   if(G.state!=='playing'||!G._tickerFull)return;
-  const th=18,ty=CFG.H-th;
-  ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fillRect(0,ty,CFG.W,th);
+  const th=26,ty=CFG.H-th;
+  // Background bar
+  ctx.fillStyle='rgba(0,0,0,0.92)';ctx.fillRect(0,ty,CFG.W,th);
+  // Red accent line at top of ticker
+  ctx.fillStyle='#cc2222';ctx.fillRect(0,ty,CFG.W,2);
   // LIVE badge
-  ctx.fillStyle='#ff3333';ctx.font='bold 8px Arial,sans-serif';ctx.textAlign='left';
+  ctx.fillStyle='#ff2222';ctx.font='bold 10px Arial,sans-serif';ctx.textAlign='left';
   ctx.shadowColor='#ff0000';ctx.shadowBlur=5;
-  ctx.fillText('LIVE',4,ty+12);ctx.shadowBlur=0;
-  // Separator
-  ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(33,ty+3,1,th-6);
-  // Scrolling text
+  ctx.fillText('LIVE',4,ty+17);ctx.shadowBlur=0;
+  // Separator pipe
+  ctx.fillStyle='rgba(255,60,60,0.6)';ctx.fillRect(35,ty+4,2,th-8);
+  // Scrolling text — bold, white, properly sized
   ctx.save();
-  ctx.beginPath();ctx.rect(38,ty,CFG.W-38,th);ctx.clip();
-  ctx.fillStyle='#cccccc';ctx.font='9px Arial,sans-serif';ctx.textAlign='left';
+  ctx.beginPath();ctx.rect(42,ty,CFG.W-42,th);ctx.clip();
+  ctx.fillStyle='#ffffff';ctx.font='bold 12px Arial,sans-serif';ctx.textAlign='left';
+  ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=3;
   const text=G._tickerFull;
   const tw=ctx.measureText(text).width;
-  ctx.fillText(text,38+G._tickerX,ty+12);
+  ctx.fillText(text,42+G._tickerX,ty+18);
   // Seamless second copy
-  if(G._tickerX<-(tw-CFG.W+38))ctx.fillText(text,38+G._tickerX+tw+60,ty+12);
+  ctx.fillText(text,42+G._tickerX+tw+80,ty+18);
+  ctx.shadowBlur=0;
   ctx.restore();
 }
 
@@ -1875,16 +1885,35 @@ function drawHUD(){
   // Bomb strikes
   if(G.bombsHit>0){ctx.textAlign='right';ctx.font='bold 10px Arial,sans-serif';ctx.fillStyle='#ff3333';ctx.shadowColor='#000';ctx.shadowBlur=3;const strikes='X'.repeat(G.bombsHit)+'O'.repeat(3-G.bombsHit);ctx.fillText(strikes,CFG.W-14,73);ctx.shadowBlur=0}
 
-  // Live character face — reacts to gameplay
+  // Live character face — dynamically reacts to gameplay
   const expr = getExpression();
-  const faceSize = 52;
-  const faceX = CFG.W - 38;
-  const faceY = CFG.H - 45;
-  // Subtle bounce
-  const bounce = Math.sin(performance.now() / 400) * 2;
-  ctx.globalAlpha = 0.85;
+  const faceBaseSize = 80;
+  const faceX = CFG.W - 50;
+  const faceY = CFG.H - 72; // sit above ticker (ticker is 26px at bottom)
+  const now = performance.now();
+  // Bounce idle + pop animation on slice/bomb
+  const bounce = Math.sin(now / 400) * 2;
+  const popScale = 1 + G._facePop * 0.32; // up to 1.32x on trigger
+  const faceSize = Math.round(faceBaseSize * popScale);
+  // Reactive glow ring: red pulses at danger, gold at combo, orange default
+  const maxM = Math.max(G.meters.war, G.meters.econ, G.meters.scandal);
+  const inDanger = maxM >= 75;
+  const inCombo = G.combo >= 5;
+  const ringColor = inDanger ? `rgba(255,40,40,${0.7+Math.sin(now/100)*0.3})` :
+                    inCombo  ? `rgba(255,220,0,${0.8+Math.sin(now/80)*0.2})`  :
+                               `rgba(255,140,0,${0.6+Math.sin(now/300)*0.15})`;
+  const ringR = faceSize/2 + 3;
+  const ringThick = inDanger ? 4 : 2.5;
+  ctx.save();
+  ctx.strokeStyle = ringColor;
+  ctx.lineWidth = ringThick;
+  ctx.shadowColor = ringColor;
+  ctx.shadowBlur = inDanger ? 16 : inCombo ? 12 : 6;
+  ctx.beginPath();
+  ctx.arc(faceX, faceY + bounce, ringR, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
   drawCharExpression(expr, faceX, faceY + bounce, faceSize);
-  ctx.globalAlpha = 1;
 
   // Multi-slice announcement
   if(G._multiSliceTimer>0){
@@ -2155,7 +2184,12 @@ function loop(ts){
     if(G.distortion){G.distortion.remaining-=dt;if(G.distortion.remaining<=0)G.distortion=null;}
 
     // Ticker scroll
-    G._tickerX-=gameDt*62;
+    G._tickerX-=gameDt*75;
+    // Face pop animation (bounces to 1.3x then back to 1.0)
+    if(G._facePop>0){
+      G._facePop-=dt*4;
+      if(G._facePop<0)G._facePop=0;
+    }
     // Multi-slice timer
     if(G._multiSliceTimer>0){G._multiSliceTimer-=dt;if(G._multiSliceTimer<0)G._multiSliceTimer=0;}
     updateObjs(gameDt);updateParticles(dt);updatePopups(dt);updateQuoteFlashes(dt);updateBombMsgs(dt);updateMeters(gameDt);
