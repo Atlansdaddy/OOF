@@ -49,12 +49,16 @@ html,body{
 }
 #title-screen .sub{color:#aaa;font-size:13px;text-transform:uppercase;letter-spacing:4px;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-#title-char{
-  display:block;cursor:pointer;border-radius:50%;
-  box-shadow:0 0 40px rgba(255,140,0,0.5),0 0 80px rgba(255,100,0,0.2);
-  transition:transform 0.1s ease;
+/* #title-char-img sits on top of the logo, bottom-right */
+#title-char-img{
+  position:absolute;bottom:-52px;right:10px;
+  width:125px;height:125px;object-fit:contain;
+  cursor:pointer;
+  filter:drop-shadow(0 0 16px rgba(255,140,0,0.75)) drop-shadow(0 2px 8px rgba(0,0,0,0.95));
+  transition:transform 0.12s ease;
+  z-index:5;
 }
-#title-char:active{transform:scale(0.93)}
+#title-char-img:active{transform:scale(0.88)}
 #title-poke{
   color:#ff8c00;font-size:10px;letter-spacing:2px;text-transform:uppercase;
   height:14px;transition:opacity 0.3s;opacity:0;font-family:'Courier New',monospace;
@@ -246,6 +250,17 @@ html,body{
 #win-screen .win-stats{color:#66ff66;font-family:'Courier New',monospace;font-size:11px;text-align:left;line-height:1.5;white-space:pre;text-shadow:0 0 6px rgba(100,255,100,0.3);background:rgba(0,0,0,0.5);padding:8px 12px;border-radius:6px}
 #win-screen .btn-row{display:flex;gap:12px;margin-top:4px}
 
+/* ---- NO ADS TAG ---- */
+#death-screen .no-ads{color:#445566;font-size:9px;letter-spacing:2px;text-transform:uppercase;text-align:center;margin-top:4px}
+
+/* ---- MUTE BUTTON ---- */
+#mute-btn{position:fixed;top:10px;right:10px;z-index:200;width:32px;height:32px;
+  background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.15);border-radius:50%;
+  cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;
+  transition:background 0.15s;-webkit-user-select:none;user-select:none;padding:0;
+}
+#mute-btn:active{background:rgba(255,255,255,0.15)}
+
 /* ---- ACHIEVEMENT TOAST ---- */
 #ach-toast{
   position:fixed;top:20px;left:50%;transform:translateX(-50%);
@@ -264,12 +279,14 @@ html,body{
 
 <!-- TITLE -->
 <div class="screen active" id="title-screen">
-  <canvas id="title-logo" width="400" height="260" style="width:82%;max-width:360px;margin-bottom:8px;order:0"></canvas>
-  <canvas id="title-char" width="200" height="200" style="width:148px;height:148px;order:1;margin:4px 0"></canvas>
-  <div id="title-poke" style="order:2">TAP HIM</div>
-  <div class="tagline" style="order:3;margin-top:4px">swipe. slice. survive. share.</div>
-  <div class="sub" style="padding:14px 44px;border:2px solid rgba(255,140,0,0.5);border-radius:10px;font-size:16px;letter-spacing:4px;cursor:pointer;background:rgba(255,140,0,0.1);margin-top:10px;order:4">START</div>
-  <div class="version" style="position:static;margin-top:12px;order:5">v0.5 — #OrangeFury</div>
+  <div style="position:relative;width:82%;max-width:360px;order:0;margin-bottom:62px">
+    <canvas id="title-logo" width="400" height="260" style="width:100%;display:block;border-radius:12px;box-shadow:0 0 50px rgba(255,140,0,0.35),0 0 100px rgba(255,100,0,0.15)"></canvas>
+    <img id="title-char-img" src="assets/character/smug.png" alt="">
+  </div>
+  <div id="title-poke" style="order:1">TAP HIM</div>
+  <div class="tagline" style="order:2;margin-top:4px">swipe. slice. survive. share.</div>
+  <div class="sub" style="padding:14px 44px;border:2px solid rgba(255,140,0,0.5);border-radius:10px;font-size:16px;letter-spacing:4px;cursor:pointer;background:rgba(255,140,0,0.1);margin-top:10px;order:3">START</div>
+  <div class="version" style="position:static;margin-top:12px;order:4">v0.5 — #OrangeFury</div>
 </div>
 
 <!-- STAGE SELECT -->
@@ -294,6 +311,7 @@ html,body{
   <div class="portfolio" id="death-portfolio"></div>
   <div class="quote" id="death-quote"></div>
   <div class="quote-src" id="death-quote-src"></div>
+  <div class="no-ads">NO ADS · NO IAP · FREE FOREVER</div>
   <button class="btn-share" id="btn-share">SHARE YOUR DEATH</button>
   <div class="btn-row">
     <button class="btn-stages" id="btn-stages">STAGES</button>
@@ -401,6 +419,7 @@ html,body{
   <div class="ach-name" id="ach-toast-name"></div>
 </div>
 
+<button id="mute-btn" title="Toggle sound">🔊</button>
 <canvas id="game"></canvas>
 
 <script>
@@ -637,63 +656,25 @@ function drawCharExpression(expr, x, y, size) {
   ctx.drawImage(sheet,sx,sy,sw,sh,x-size/2,y-size/2,size,size*(sh/sw));
 }
 
-// ---- TITLE SCREEN CHARACTER ANIMATION ----
-let _titleExpr = 'smug';
-let _titlePokeTimer = 0;
-let _titleAnimFrame = null;
-
-function startTitleCharAnim() {
-  const c = document.getElementById('title-char');
-  if (!c) return;
-  const cx = c.getContext('2d');
-  const W = c.width, H = c.height;
-
-  function frame(ts) {
-    if (G.state !== 'title') { _titleAnimFrame = null; return; }
-    _titleAnimFrame = requestAnimationFrame(frame);
-
-    cx.clearRect(0, 0, W, H);
-
-    // Floating offset
-    const floatY = Math.sin(ts / 700) * 5;
-
-    // Radial glow behind face
-    const gr = cx.createRadialGradient(W/2, H/2+floatY, W*0.08, W/2, H/2+floatY, W/2);
-    gr.addColorStop(0, 'rgba(255,140,0,0.35)');
-    gr.addColorStop(0.5, 'rgba(255,80,0,0.12)');
-    gr.addColorStop(1, 'rgba(255,80,0,0)');
-    cx.fillStyle = gr;
-    cx.fillRect(0, 0, W, H);
-
-    // Clip to circle
-    cx.save();
-    cx.beginPath();
-    cx.arc(W/2, H/2+floatY, W/2-4, 0, Math.PI*2);
-    cx.clip();
-
-    const img = assets['expr_' + _titleExpr];
-    if (img) cx.drawImage(img, 4, 4+floatY, W-8, H-8);
-
-    cx.restore();
-
-    // Poke timer — revert to smug after panic
-    if (_titlePokeTimer > 0) {
-      _titlePokeTimer -= 16;
-      if (_titlePokeTimer <= 0) { _titleExpr = 'smug'; }
-    }
-  }
-  _titleAnimFrame = requestAnimationFrame(frame);
-}
+// ---- TITLE SCREEN CHARACTER ----
+// Static img — no canvas needed. Tap for panic reaction.
+function startTitleCharAnim() { /* no-op — img is static */ }
 
 function pokeTitleChar() {
-  _titleExpr = 'panicked';
-  _titlePokeTimer = 700; // ms
+  const img = document.getElementById('title-char-img');
   const poke = document.getElementById('title-poke');
+  // Swap to panicked face
+  if (img && assets['expr_panicked']) {
+    const panicSrc = EXPR_FILES.panicked;
+    img.src = panicSrc;
+    clearTimeout(img._pt);
+    img._pt = setTimeout(() => { img.src = EXPR_FILES.smug; }, 800);
+  }
   if (poke) {
     poke.textContent = "HE'S SCARED. GOOD.";
     poke.style.opacity = '1';
     clearTimeout(poke._t);
-    poke._t = setTimeout(() => { poke.style.opacity = '0'; }, 1200);
+    poke._t = setTimeout(() => { poke.style.opacity = '0'; }, 1400);
   }
 }
 
@@ -794,6 +775,92 @@ const WHERE_ARE_THEY_NOW = [
   {name:'Kid Rock',        fate:'Ticket scalping executive order overturned. Resumed career performing at state fairs and sentencing hearings.'},
 ];
 
+// ---- NEWS TICKER HEADLINES ----
+const TICKER_HEADLINES = [
+  '"BLOWN TO HELL. THOSE MINES WILL BE REMOVED!" — Truth Social, April 2026',
+  '"Nobody was texting war plans." — White House Press Secretary',
+  '"Person. Woman. Man. Camera. TV." — Cognitive test, 2020',
+  '"Despite the constant negative press covfefe" — Twitter, 2017',
+  '"The noise from windmills causes cancer." — NRCC Dinner, 2019',
+  '"I have the best words." — Campaign Rally, 2015',
+  '"Was it all bullsh*t?" — Aide on DOGE savings promises',
+  '"Those are some really sh*tty war plans." — Hegseth, Signal Chat',
+  'BREAKING: 230 tankers stuck in Strait of Hormuz queue',
+  'ALERT: Markets drop 1,200 points on Liberation Day announcement',
+  'DEVELOPING: Epstein files — 2.5 million pages still unreleased',
+  'JUST IN: AG Bondi confirms client list "was on my desk"',
+  'CONFIRMED: 143 executive orders in first 100 days',
+  'ANALYSIS: Reciprocal tariffs were not actually reciprocal',
+  'BREAKING: Tesla profits down 71% during DOGE tenure',
+  'REPORT: $3 trillion deficit projected from Big Beautiful Megabill',
+  'ALERT: Iran now charging $2M per vessel transit through strait',
+  'UPDATE: NATO allies decline participation for 7th consecutive request',
+  'EXCLUSIVE: Signal chat leak exposes joint airstrike timeline',
+  'BREAKING: Federal judge blocks executive order as unconstitutional',
+  'DEVELOPING: Trade War expands — 47 nations impose retaliatory tariffs',
+  'CONFIRMED: DOGE documents $0 in verified savings after audit',
+  '"Could be the riviera of the Middle East." — On Gaza rebuilding plan',
+  'ALERT: Gas prices reach $9/gallon as strait closure continues',
+  'CLASSIFIED: 90-day tariff pause confirms original rates were arbitrary',
+  'BREAKING: Pardon applications up 4,000% from previous term',
+  '"Third term? We may have to look into that." — Rally, 2025',
+];
+
+// ---- STAGE-SPECIFIC WHERE ARE THEY NOW ----
+const STAGE_WATN = {
+  oval:[
+    {name:'Donald Trump',fate:'"Total exoneration" denied. Detained pending trial. Tweeting from a government-issued Nokia.'},
+    {name:'Elon Musk',fate:'DOGE disbanded after audit reveals $0 documented savings. Back to launching rockets. Tesla up 3%.'},
+    {name:'Pete Hegseth',fate:'Resigned. Writing memoir: "Those Were Real War Plans." Signal chat preserved as Exhibit A.'},
+    {name:'Kid Rock',fate:'Ticket scalping executive order overturned. Currently performing at sentencing hearings.'},
+    {name:'Executive Order #143',fate:'Struck down. Framed. Displayed at National Archives in the Cautionary Tales wing.'},
+  ],
+  mara:[
+    {name:'Donald Trump',fate:'Detained. Classified documents recovered from bathroom. Mar-a-Lago converted to FBI field office.'},
+    {name:'Pam Bondi',fate:'Cooperating with investigators. Reading all 2.5 million Epstein pages. Currently on page 4,712.'},
+    {name:'The Epstein Files',fate:'Released in full. Available on PACER. Section H is particularly damning. Section K is worse.'},
+    {name:'Mar-a-Lago',fate:'Seized as evidence. Pool drained. Documents recovered. Now a public golf course. Par 3 on hole 7.'},
+    {name:'The Bathroom Archive',fate:'Catalogued. 47 boxes. Most marked TOP SECRET. Two marked "DO NOT READ". Everyone read them.'},
+  ],
+  senate:[
+    {name:'Donald Trump',fate:'Held in contempt. Third time. Subpoena finally enforced. He actually showed up. Briefly.'},
+    {name:'Pam Bondi',fate:'Resigned. The client list was, in fact, on her desk. She has now confirmed this in writing.'},
+    {name:'The Subpoena',fate:'Enforced. Historical first. Filed under "Better Late Than Never" in Congressional Record.'},
+    {name:'Congressional Record',fate:'All 143 executive orders annotated. Sixteen marked UNCONSTITUTIONAL. Four marked "huh?"'},
+    {name:'Senate Contempt Division',fate:'Fully staffed for the first time since 2019. Currently hiring two more.'},
+  ],
+  hormuz:[
+    {name:'The Strait',fate:'Reopened. Toll booths removed. 230 stuck tankers finally cleared. Gas back to $3.29.'},
+    {name:'Iran Mines',fate:'Located. All 47 of them. Three were from 1987. Nobody claimed the others.'},
+    {name:'The $2M Transit Fee',fate:'Overturned by international maritime law. Iran still invoicing. Nobody is paying.'},
+    {name:'230 Tankers',fate:'Finally cleared. ETA for last tanker: 6 weeks. Captain very tired. Coffee running low.'},
+    {name:'Hegseth\'s War Plans',fate:'Preserved as Exhibit A. Classified. Leaked. Re-classified. Still on Signal group chat.'},
+  ],
+  un:[
+    {name:'The Tariff Chart',fate:'"Not actual tariff rates." Confirmed by 47 economists. Retired to Smithsonian Modern Nonsense wing.'},
+    {name:'47 Retaliatory Tariffs',fate:'All still active. WTO case pending. Liberation Day was not, in fact, liberating.'},
+    {name:'EU Delegation',fate:'Walked out. Still walking. Have not returned. Vending machine in lobby fully stocked.'},
+    {name:'US Diplomatic Standing',fate:'Under review. Currently rated "Complicated" on the world diplomatic relations index.'},
+    {name:'The Reciprocal Formula',fate:'"Not reciprocal." Confirmed by 47 economists. Chart laminated for educational purposes.'},
+  ],
+  telaviv:[
+    {name:'Netanyahu',fate:'On 10th state visit. Ceasefire holding at 3 weeks. Gaza Riviera groundbreaking still TBD.'},
+    {name:'The Gaza Riviera',fate:'Still in planning. Environmental review pending. Tourism board quietly disbanded.'},
+    {name:'Ceasefire Agreement #7',fate:'Signed. Holding. Previous 6 averaged 11 hours. This one at record 3-week mark.'},
+    {name:'The F-35 Sale',fate:'Completed. Objections filed, noted, ignored. F-35s delivered Tuesday. Signed receipt.'},
+    {name:'State Visit Gift Exchange',fate:'Archived. 37 ties, 14 plaques, 3 framed photos, 1 MAGA hat. All forensically catalogued.'},
+  ],
+  meltdown:[
+    {name:'Donald Trump',fate:'"Total exoneration" denied across all 7 jurisdictions simultaneously. Historic. Unprecedented.'},
+    {name:'Reality',fate:'Restored. Slowly. Estimated full recalibration: 18-24 months. Framers unavailable for comment.'},
+    {name:'The Constitution',fate:'Located. Intact. Several amendments amended back. Amendment XVII still under review.'},
+    {name:'All Three Meters',fate:'Simultaneously maxed. First documented case in history. Wikipedia article pending deletion.'},
+    {name:'The Signal Chat',fate:'Permanently preserved as Exhibit A through Z. All parties identified. Subpoenas active.'},
+    {name:'American Democracy',fate:'"Battered but unbowed." — CNN. "Still standing." — BBC. "We\'re calling it." — Reuters.'},
+    {name:'Elon Musk',fate:'DOGE disbanded. Tesla recovered. Mars colony still delayed. Chainsaw returned to Home Depot.'},
+  ],
+};
+
 // ---- HANDCUFFS OBJECT ----
 const HANDCUFFS_DEF = {
   id:'handcuffs', label:'THE CUFFS', sprite:'handcuffs', pts:10000,
@@ -891,15 +958,15 @@ function loadBgs(stageKey) {
 // ---- AUDIO ----
 let ac=null;
 function initAudio(){if(ac)return;ac=new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume()}
-function sndSlice(combo){if(!ac)return;const t=ac.currentTime;const len=ac.sampleRate*0.09;const buf=ac.createBuffer(1,len,ac.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.5)*0.5;const s=ac.createBufferSource();s.buffer=buf;const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=700+Math.min(combo,12)*120;f.Q.value=2.5;const g=ac.createGain();g.gain.setValueAtTime(0.4,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);s.connect(f);f.connect(g);g.connect(ac.destination);s.start(t);s.stop(t+0.1);const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(280+combo*40,t);o.frequency.exponentialRampToValueAtTime(80,t+0.14);const og=ac.createGain();og.gain.setValueAtTime(0.12,t);og.gain.exponentialRampToValueAtTime(0.001,t+0.14);o.connect(og);og.connect(ac.destination);o.start(t);o.stop(t+0.14)}
-function sndMiss(){if(!ac)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='triangle';o.frequency.setValueAtTime(90,t);o.frequency.exponentialRampToValueAtTime(35,t+0.22);const g=ac.createGain();g.gain.setValueAtTime(0.18,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.25)}
-function sndBomb(){if(!ac)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='square';o.frequency.setValueAtTime(220,t);o.frequency.setValueAtTime(180,t+0.05);o.frequency.setValueAtTime(220,t+0.1);const g=ac.createGain();g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.3);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.3);const o2=ac.createOscillator();o2.type='sine';o2.frequency.setValueAtTime(50,t);o2.frequency.exponentialRampToValueAtTime(25,t+0.4);const g2=ac.createGain();g2.gain.setValueAtTime(0.25,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.4);o2.connect(g2);g2.connect(ac.destination);o2.start(t);o2.stop(t+0.4)}
-function sndMeterWarn(){if(!ac)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(440,t);o.frequency.setValueAtTime(520,t+0.08);const g=ac.createGain();g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.15)}
+function sndSlice(combo){if(!ac||soundMuted)return;const t=ac.currentTime;const len=ac.sampleRate*0.09;const buf=ac.createBuffer(1,len,ac.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.5)*0.5;const s=ac.createBufferSource();s.buffer=buf;const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=700+Math.min(combo,12)*120;f.Q.value=2.5;const g=ac.createGain();g.gain.setValueAtTime(0.4,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);s.connect(f);f.connect(g);g.connect(ac.destination);s.start(t);s.stop(t+0.1);const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(280+combo*40,t);o.frequency.exponentialRampToValueAtTime(80,t+0.14);const og=ac.createGain();og.gain.setValueAtTime(0.12,t);og.gain.exponentialRampToValueAtTime(0.001,t+0.14);o.connect(og);og.connect(ac.destination);o.start(t);o.stop(t+0.14)}
+function sndMiss(){if(!ac||soundMuted)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='triangle';o.frequency.setValueAtTime(90,t);o.frequency.exponentialRampToValueAtTime(35,t+0.22);const g=ac.createGain();g.gain.setValueAtTime(0.18,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.25)}
+function sndBomb(){if(!ac||soundMuted)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='square';o.frequency.setValueAtTime(220,t);o.frequency.setValueAtTime(180,t+0.05);o.frequency.setValueAtTime(220,t+0.1);const g=ac.createGain();g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.3);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.3);const o2=ac.createOscillator();o2.type='sine';o2.frequency.setValueAtTime(50,t);o2.frequency.exponentialRampToValueAtTime(25,t+0.4);const g2=ac.createGain();g2.gain.setValueAtTime(0.25,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.4);o2.connect(g2);g2.connect(ac.destination);o2.start(t);o2.stop(t+0.4)}
+function sndMeterWarn(){if(!ac||soundMuted)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(440,t);o.frequency.setValueAtTime(520,t+0.08);const g=ac.createGain();g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.15)}
 
 // ---- TENSION DRONE ----
 let _droneOsc=null,_droneGain=null,_droneLfo=null,_droneLfoGain=null,_droneActive=false;
 function startDrone(){
-  if(!ac||_droneActive)return;
+  if(!ac||_droneActive||soundMuted)return;
   _droneOsc=ac.createOscillator();_droneOsc.type='sine';_droneOsc.frequency.value=55;
   _droneLfo=ac.createOscillator();_droneLfo.type='sine';_droneLfo.frequency.value=0.35;
   _droneLfoGain=ac.createGain();_droneLfoGain.gain.value=6;
@@ -925,13 +992,13 @@ function updateDrone(maxMeter){
   }
 }
 function sndAlarmPulse(){
-  if(!ac)return;const t=ac.currentTime;
+  if(!ac||soundMuted)return;const t=ac.currentTime;
   const o=ac.createOscillator();o.type='square';o.frequency.setValueAtTime(900,t);o.frequency.setValueAtTime(680,t+0.07);
   const g=ac.createGain();g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
   o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.18);
 }
 function sndComboChime(level){
-  if(!ac)return;const t=ac.currentTime;
+  if(!ac||soundMuted)return;const t=ac.currentTime;
   // Musical notes: C5, E5, G5, C6, E6 for combo levels 1-5
   const freqs=[0,523,659,784,1047,1319];
   const f=freqs[Math.min(level,freqs.length-1)];if(!f)return;
@@ -943,7 +1010,7 @@ function sndComboChime(level){
   o2.connect(g2);g2.connect(ac.destination);o2.start(t+0.05);o2.stop(t+0.4);
 }
 function sndWinFanfare(){
-  if(!ac)return;const t=ac.currentTime;
+  if(!ac||soundMuted)return;const t=ac.currentTime;
   const notes=[523,659,784,1047,784,1047,1319,1568];
   notes.forEach((f,i)=>{
     const o=ac.createOscillator();o.type='sine';o.frequency.value=f;
@@ -951,6 +1018,44 @@ function sndWinFanfare(){
     g.gain.exponentialRampToValueAtTime(0.001,t+i*0.1+0.55);
     o.connect(g);g.connect(ac.destination);o.start(t+i*0.1);o.stop(t+i*0.1+0.6);
   });
+}
+
+// Death sound — descending sawtooth collapse
+function sndDeath(){
+  if(!ac||soundMuted)return;const t=ac.currentTime;
+  [440,330,220,110,55].forEach((f,i)=>{
+    const o=ac.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,t+i*0.12);
+    const g=ac.createGain();g.gain.setValueAtTime(0.12,t+i*0.12);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.12+0.18);
+    o.connect(g);g.connect(ac.destination);o.start(t+i*0.12);o.stop(t+i*0.12+0.2);
+  });
+  const o2=ac.createOscillator();o2.type='sine';o2.frequency.setValueAtTime(60,t+0.55);o2.frequency.exponentialRampToValueAtTime(20,t+1.0);
+  const g2=ac.createGain();g2.gain.setValueAtTime(0.2,t+0.55);g2.gain.exponentialRampToValueAtTime(0.001,t+1.1);
+  o2.connect(g2);g2.connect(ac.destination);o2.start(t+0.55);o2.stop(t+1.2);
+}
+// Distortion sound — short glitch burst
+function sndDistortion(){
+  if(!ac||soundMuted)return;const t=ac.currentTime;
+  const buf=ac.createBuffer(1,ac.sampleRate*0.08,ac.sampleRate);
+  const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  const s=ac.createBufferSource();s.buffer=buf;
+  const f=ac.createBiquadFilter();f.type='highpass';f.frequency.value=800;
+  const g=ac.createGain();g.gain.setValueAtTime(0.18,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+  s.connect(f);f.connect(g);g.connect(ac.destination);s.start(t);s.stop(t+0.1);
+}
+// Bomb appear — quiet tick
+function sndBombAppear(){
+  if(!ac||soundMuted)return;const t=ac.currentTime;
+  const o=ac.createOscillator();o.type='square';o.frequency.setValueAtTime(1200,t);
+  const g=ac.createGain();g.gain.setValueAtTime(0.05,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.03);
+  o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.04);
+}
+// Mute toggle
+let soundMuted = false;
+function toggleMute(){
+  soundMuted=!soundMuted;
+  const btn=document.getElementById('mute-btn');
+  if(btn)btn.textContent=soundMuted?'🔇':'🔊';
+  if(soundMuted&&_droneActive)stopDrone();
 }
 
 // ---- GAME STATE ----
@@ -977,6 +1082,10 @@ const G = {
   handcuffsTimer:0,
   _sessionSlices:[],  // every content ID sliced this session (for achievement checks)
   _alarmTimer:0,
+  // News ticker
+  _tickerX:0, _tickerFull:null,
+  // Per-swipe multi-slice tracking
+  _swipeSlices:0, _multiSliceTimer:0,
 };
 
 // ---- HELPERS ----
@@ -987,10 +1096,10 @@ function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   if (id) document.getElementById(id).classList.add('active');
-  // Restart title character animation when returning to title
-  if (id === 'title-screen' || (!id && G.state === 'title')) {
-    _titleExpr = 'smug';
-    if (!_titleAnimFrame) startTitleCharAnim();
+  // Reset title character to smug when returning to title
+  if (id === 'title-screen') {
+    const tci = document.getElementById('title-char-img');
+    if (tci) tci.src = EXPR_FILES.smug;
   }
 }
 
@@ -1183,8 +1292,17 @@ function spawnPowerup(pu){
 }
 
 function spawnBomb(b){
-  const pos=launchPos();
-  G.objects.push({...pos,r:CFG.OBJ_R+4,rot:0,rotV:rng(-4,4),sliced:false,missed:false,isBomb:true,
+  // Try up to 4 positions, use the one most isolated from existing objects
+  const active=G.objects.filter(o=>!o.sliced);
+  let best=launchPos(),bestDist=0;
+  for(let t=0;t<4;t++){
+    const p=launchPos();
+    const minD=active.reduce((m,o)=>Math.min(m,Math.hypot(o.x-p.x,o.y-p.y)),999);
+    if(minD>bestDist){bestDist=minD;best=p;}
+    if(bestDist>CFG.OBJ_R*4)break; // good enough gap found
+  }
+  sndBombAppear();
+  G.objects.push({...best,r:CFG.OBJ_R+4,rot:0,rotV:rng(-4,4),sliced:false,missed:false,isBomb:true,
     bombDef:b,label:b.label,sprite:b.sprite,meter:null,meterImpact:0,pts:0,
     st:0,lx:0,ly:0,lvx:0,lvy:0,lr:0,lrv:0,rx:0,ry:0,rvx:0,rvy:0,rr:0,rrv:0});
 }
@@ -1273,6 +1391,7 @@ function sliceObj(o,angle){
   const px=Math.cos(angle+Math.PI/2),py=Math.sin(angle+Math.PI/2),sp=90;
   o.lx=o.x;o.ly=o.y;o.lvx=o.vx+px*sp;o.lvy=o.vy+py*sp-120;o.lr=0;o.lrv=-5-Math.random()*3;
   o.rx=o.x;o.ry=o.y;o.rvx=o.vx-px*sp;o.rvy=o.vy-py*sp-120;o.rr=0;o.rrv=5+Math.random()*3;
+  G._swipeSlices++;
   G.combo++;G.comboTimer=CFG.COMBO_WINDOW;if(G.combo>G.maxCombo)G.maxCombo=G.combo;
   const pts=o.pts*Math.min(G.combo,15);G.score+=pts;G.slices++;
   G.shake=4+Math.min(G.combo,12)*0.6;
@@ -1402,15 +1521,22 @@ function win(){
   writeSave();
   unlockAchievement('accountability');
   checkAchievements();
-  // Build Where Are They Now list
+  // 100x OJT jackpot on win
+  let jackpot=0;
+  if(G.bet&&G.bet.amount){jackpot=G.bet.amount*100;save.ojt+=jackpot;writeSave();
+    G.betResult={won:true,delta:jackpot,payout:jackpot};}
+  // Stage-specific Where Are They Now
+  const watnData=STAGE_WATN[G.currentStage]||WHERE_ARE_THEY_NOW;
   const list=document.getElementById('watn-list');list.innerHTML='';
-  for(const e of WHERE_ARE_THEY_NOW){
+  for(const e of watnData){
     const d=document.createElement('div');d.className='watn-entry';
     d.innerHTML=`<div class="watn-name">${e.name}</div><div class="watn-fate">${e.fate}</div>`;
     list.appendChild(d);
   }
+  const jackpotLine=jackpot>0?`\n🎰 $OJT JACKPOT:  +${jackpot.toLocaleString()} (100x)`:
+    `\n$OJT balance:   ${save.ojt.toLocaleString()}`;
   document.getElementById('win-stats').textContent=
-    `Score:          ${G.score.toLocaleString()}\nTime survived:  ${Math.floor(G.time/60)}m ${Math.floor(G.time%60)}s\nOranges sliced: ${G.slices}\nBest combo:     ${G.maxCombo}x\n$OJT balance:   ${save.ojt.toLocaleString()}`;
+    `Score:          ${G.score.toLocaleString()}\nTime survived:  ${Math.floor(G.time/60)}m ${Math.floor(G.time%60)}s\nOranges sliced: ${G.slices}\nBest combo:     ${G.maxCombo}x${jackpotLine}`;
   document.getElementById('win-screen').style.backgroundImage=`url('assets/screens/accountabilitybg.png')`;
   showScreen('win-screen');
 }
@@ -1474,20 +1600,27 @@ function onMove(x,y,time){
   inp.pts.push({x,y,time});if(inp.pts.length>6)inp.pts.shift();
 }
 
-canvas.addEventListener('touchstart',e=>{e.preventDefault();if(G.state==='title'){initAudio();renderStageSelect();return}if(G.state!=='playing')return;const t=e.touches[0],v=s2v(t.clientX,t.clientY);inp.active=true;inp.pts=[{x:v.x,y:v.y,time:performance.now()}]},{passive:false});
+function onSwipeStart(vx,vy){inp.active=true;inp.pts=[{x:vx,y:vy,time:performance.now()}];G._swipeSlices=0;}
+function onSwipeEnd(){
+  inp.active=false;inp.pts=[];
+  if(G._swipeSlices>=2){G._multiSliceTimer=0.85;}
+}
+canvas.addEventListener('touchstart',e=>{e.preventDefault();if(G.state==='title'){initAudio();renderStageSelect();return}if(G.state!=='playing')return;const t=e.touches[0],v=s2v(t.clientX,t.clientY);onSwipeStart(v.x,v.y);},{passive:false});
 canvas.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0],v=s2v(t.clientX,t.clientY);onMove(v.x,v.y,performance.now())},{passive:false});
-canvas.addEventListener('touchend',e=>{e.preventDefault();inp.active=false;inp.pts=[]});
-canvas.addEventListener('mousedown',e=>{if(G.state==='title'){initAudio();renderStageSelect();return}if(G.state!=='playing')return;const v=s2v(e.clientX,e.clientY);inp.active=true;inp.pts=[{x:v.x,y:v.y,time:performance.now()}]});
+canvas.addEventListener('touchend',e=>{e.preventDefault();onSwipeEnd();});
+canvas.addEventListener('mousedown',e=>{if(G.state==='title'){initAudio();renderStageSelect();return}if(G.state!=='playing')return;const v=s2v(e.clientX,e.clientY);onSwipeStart(v.x,v.y);});
 canvas.addEventListener('mousemove',e=>{if(!inp.active)return;const v=s2v(e.clientX,e.clientY);onMove(v.x,v.y,performance.now())});
-canvas.addEventListener('mouseup',()=>{inp.active=false;inp.pts=[]});
+canvas.addEventListener('mouseup',()=>{onSwipeEnd();});
 
 document.getElementById('title-screen').addEventListener('click',()=>{if(G.state==='title'){initAudio();renderStageSelect()}});
 document.getElementById('btn-replay').addEventListener('click',()=>{showScreen(null);launchStage(G.currentStage)});
 document.getElementById('btn-stages').addEventListener('click',()=>{renderStageSelect()});
 document.getElementById('btn-tutorial-go').addEventListener('click',(e)=>{
   e.stopPropagation();
-  if(G._pendingStage){showScreen(null);launchStage(G._pendingStage);G._pendingStage=null;}
-  else{renderStageSelect();}
+  if(G._pendingStage){
+    localStorage.setItem('oof_played_before','1'); // mark first-time complete
+    showScreen(null);launchStage(G._pendingStage);G._pendingStage=null;
+  }else{renderStageSelect();}
 });
 
 // Betting buttons
@@ -1586,6 +1719,21 @@ function drawObj(o){
     ctx.save();ctx.translate(o.rx,o.ry);ctx.rotate(o.rr);ctx.beginPath();ctx.arc(0,0,o.r,-Math.PI*0.5,Math.PI*0.5);ctx.closePath();ctx.fillStyle=col;ctx.fill();ctx.beginPath();ctx.arc(-1,0,o.r*0.72,-Math.PI*0.5,Math.PI*0.5);ctx.closePath();ctx.fillStyle=inner;ctx.fill();ctx.restore();
     ctx.globalAlpha=1;return;
   }
+  // Glow ring — meter-colored for sliceables, skip bombs/powerups/handcuffs (they have their own rings)
+  if(!o.isBomb&&!o.isPowerup&&!o.isHandcuffs){
+    const gc=o.meter?METER_COLORS[o.meter]:'#FF8C00';
+    ctx.save();ctx.shadowColor=gc;ctx.shadowBlur=12;
+    ctx.strokeStyle=gc;ctx.lineWidth=1.5;ctx.globalAlpha=0.32;
+    ctx.beginPath();ctx.arc(o.x,o.y,o.r+2,0,Math.PI*2);ctx.stroke();
+    ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.restore();
+  }
+  // Red ⚠ above bombs
+  if(o.isBomb){
+    const wa=0.75+Math.sin(performance.now()/140)*0.2;
+    ctx.save();ctx.shadowColor='#FF0000';ctx.shadowBlur=8;
+    ctx.fillStyle=`rgba(255,40,40,${wa})`;ctx.font='bold 13px Arial,sans-serif';ctx.textAlign='center';
+    ctx.fillText('⚠',o.x,o.y-o.r-10);ctx.shadowBlur=0;ctx.restore();
+  }
   ctx.save();ctx.translate(o.x,o.y);ctx.rotate(o.rot);
   const spriteImg=assets[o.sprite];
   if(spriteImg){const s=o.r*2.4;ctx.beginPath();ctx.arc(0,0,o.r+2,0,Math.PI*2);ctx.closePath();ctx.clip();ctx.drawImage(spriteImg,-s/2,-s/2,s,s)}
@@ -1655,6 +1803,29 @@ function drawQuoteFlashes(){
 
 function drawBombMsgs(){for(const m of G.bombMsgs){const a=m.life/m.max;ctx.globalAlpha=a;ctx.fillStyle='#ff3333';ctx.font='bold 16px Arial Black,Arial,sans-serif';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=6;const lines=m.text.split('\n'),by=CFG.H*0.25;for(let i=0;i<lines.length;i++)ctx.fillText(lines[i],CFG.W/2,by+i*22);ctx.shadowBlur=0}ctx.globalAlpha=1}
 
+// ---- NEWS TICKER ----
+function drawTicker(){
+  if(G.state!=='playing'||!G._tickerFull)return;
+  const th=18,ty=CFG.H-th;
+  ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fillRect(0,ty,CFG.W,th);
+  // LIVE badge
+  ctx.fillStyle='#ff3333';ctx.font='bold 8px Arial,sans-serif';ctx.textAlign='left';
+  ctx.shadowColor='#ff0000';ctx.shadowBlur=5;
+  ctx.fillText('LIVE',4,ty+12);ctx.shadowBlur=0;
+  // Separator
+  ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(33,ty+3,1,th-6);
+  // Scrolling text
+  ctx.save();
+  ctx.beginPath();ctx.rect(38,ty,CFG.W-38,th);ctx.clip();
+  ctx.fillStyle='#cccccc';ctx.font='9px Arial,sans-serif';ctx.textAlign='left';
+  const text=G._tickerFull;
+  const tw=ctx.measureText(text).width;
+  ctx.fillText(text,38+G._tickerX,ty+12);
+  // Seamless second copy
+  if(G._tickerX<-(tw-CFG.W+38))ctx.fillText(text,38+G._tickerX+tw+60,ty+12);
+  ctx.restore();
+}
+
 function drawHUD(){
   ctx.fillStyle='#fff';ctx.font='bold 28px Arial Black,Arial,sans-serif';ctx.textAlign='center';ctx.shadowColor='rgba(0,0,0,0.6)';ctx.shadowBlur=4;ctx.fillText(G.score.toLocaleString(),CFG.W/2,42);
   ctx.fillStyle='#999';ctx.font='13px Arial,sans-serif';const m=Math.floor(G.time/60),s=Math.floor(G.time%60);ctx.fillText(`${m}:${s.toString().padStart(2,'0')}`,CFG.W/2,60);
@@ -1676,6 +1847,22 @@ function drawHUD(){
   drawCharExpression(expr, faceX, faceY + bounce, faceSize);
   ctx.globalAlpha = 1;
 
+  // Multi-slice announcement
+  if(G._multiSliceTimer>0){
+    const a=Math.min(1,G._multiSliceTimer/0.4);
+    const scale=1.1+Math.sin(performance.now()/60)*0.04;
+    ctx.globalAlpha=a;ctx.fillStyle='#ffffff';
+    ctx.font=`bold ${22*scale}px Arial Black,sans-serif`;ctx.textAlign='center';
+    ctx.shadowColor='#ff8c00';ctx.shadowBlur=12;
+    const label=G._swipeSlices>=4?'QUAD SLICE!':G._swipeSlices===3?'TRIPLE SLICE!':'DOUBLE SLICE!';
+    ctx.fillText(label,CFG.W/2,CFG.H*0.18);
+    ctx.shadowBlur=0;ctx.globalAlpha=1;
+  }
+  // Mute indicator (tiny, only when muted)
+  if(soundMuted){
+    ctx.fillStyle='rgba(255,100,100,0.7)';ctx.font='10px Arial,sans-serif';ctx.textAlign='right';
+    ctx.fillText('🔇',CFG.W-12,CFG.H-22);
+  }
   // Accountability full — golden border + text
   if(G.accountabilityFull){
     const ap=0.4+Math.sin(performance.now()/280)*0.3;
@@ -1721,7 +1908,7 @@ function render(){
   // Distortion: flip screen
   if(G.distortion&&G.distortion.effect==='flip'){ctx.translate(CFG.W,CFG.H);ctx.rotate(Math.PI);}
 
-  drawParticles();drawTrail();drawPopups();drawQuoteFlashes();drawBombMsgs();drawMeters();drawHUD();
+  drawParticles();drawTrail();drawPopups();drawQuoteFlashes();drawBombMsgs();drawMeters();drawHUD();drawTicker();
 
   // Combo announcement (big center text)
   if(G.comboAnnounce){
@@ -1779,9 +1966,12 @@ function die(){
   const meter=G.killedBy||'scandal';
   const stCfg=STAGES[G.currentStage];
   const causes=stCfg.deaths[meter]||stCfg.deaths.scandal;
-  const cause=pick(causes);
-  const title=getTitle(G.currentStage,G.score);
+  // Meltdown always gets the special death
+  const isMeltdown=G.currentStage==='meltdown';
+  const cause=isMeltdown?'TOTAL SYSTEMIC COLLAPSE':pick(causes);
+  const title=isMeltdown?'Person, Woman, Man, Camera, Annihilator':getTitle(G.currentStage,G.score);
   const dq=pick(DEATH_QUOTES);
+  sndDeath();
 
   // Calculate bet payout
   G.betResult = calculatePayout();
@@ -1813,8 +2003,9 @@ function die(){
   document.getElementById('death-cause').textContent=cause;
   document.getElementById('death-score').textContent=G.score.toLocaleString();
   document.getElementById('death-title').textContent=`"${title}"`;
-  document.getElementById('death-stats').textContent=
-    `Oranges sliced:     ${G.slices}\nObjects missed:     ${G.misses}\nBombs sliced:       ${G.bombsHit}/3\nBest combo:         ${G.maxCombo}x\nTime survived:      ${Math.floor(G.time/60)}m ${Math.floor(G.time%60)}s\nAccuracy:           ${G.slices+G.misses>0?Math.round(G.slices/(G.slices+G.misses)*100):0}%`;
+  const baseStats=`Oranges sliced:     ${G.slices}\nObjects missed:     ${G.misses}\nBombs sliced:       ${G.bombsHit}/3\nBest combo:         ${G.maxCombo}x\nTime survived:      ${Math.floor(G.time/60)}m ${Math.floor(G.time%60)}s\nAccuracy:           ${G.slices+G.misses>0?Math.round(G.slices/(G.slices+G.misses)*100):0}%`;
+  const meltdownCard=isMeltdown?'\n\n═══ PRESIDENTIAL REPORT CARD ═══\nWar:          F\nEconomy:      F\nScandal:      F\nDiplomacy:    F\nEfficiency:   F\nTransparency: REDACTED\n─────────────────────────────────\nOverall:      SEE ME AFTER CLASS':'';
+  document.getElementById('death-stats').textContent=baseStats+meltdownCard;
   document.getElementById('death-quote').textContent=dq.q;
   document.getElementById('death-quote-src').textContent='— '+dq.s;
 
@@ -1844,11 +2035,12 @@ function launchStage(stageKey){
   showScreen(null);
   G.currentStage=stageKey;
 
-  // Show tutorial on first ever game
-  if(save.totalGames===0&&!G._tutorialSeen){
+  // Show tutorial on first ever game (keyed to oof_played_before, not save data)
+  if(!localStorage.getItem('oof_played_before')&&!G._tutorialSeen){
     G._tutorialSeen=true;
     G._pendingStage=stageKey;
     showScreen('tutorial-screen');
+    setTimeout(()=>{if(window.drawTutIcons)drawTutIcons();},50);
     return;
   }
 
@@ -1873,6 +2065,11 @@ async function startPlaying(){
   G.accountability={signal:false,coverup:false,bondi:false,court:false,survival:false};
   G.accountabilityFull=false;G.handcuffsTimer=0;
   G._sessionSlices=[];G._alarmTimer=0;
+  // Ticker
+  G._tickerFull=TICKER_HEADLINES.join('  ◆  ');
+  G._tickerX=CFG.W; // start off-screen right
+  // Multi-slice
+  G._swipeSlices=0;G._multiSliceTimer=0;
   stopDrone();
   document.getElementById('game').style.boxShadow='';
   showScreen(null);
@@ -1909,6 +2106,10 @@ function loop(ts){
     }
     if(G.distortion){G.distortion.remaining-=dt;if(G.distortion.remaining<=0)G.distortion=null;}
 
+    // Ticker scroll
+    G._tickerX-=gameDt*62;
+    // Multi-slice timer
+    if(G._multiSliceTimer>0){G._multiSliceTimer-=dt;if(G._multiSliceTimer<0)G._multiSliceTimer=0;}
     updateObjs(gameDt);updateParticles(dt);updatePopups(dt);updateQuoteFlashes(dt);updateBombMsgs(dt);updateMeters(gameDt);
 
     // Tension drone — rises as meters fill
@@ -1929,6 +2130,12 @@ function loop(ts){
   }
   render();requestAnimationFrame(loop);
 }
+
+// ---- MUTE BUTTON ----
+document.getElementById('mute-btn').addEventListener('click',e=>{e.stopPropagation();toggleMute();});
+
+// ---- ERROR HANDLING ----
+window.onerror=function(msg,src,line){console.error('[OOF]',msg,'@line',line);return false;};
 
 // ---- INIT ----
 async function init(){
@@ -1959,11 +2166,8 @@ async function init(){
       tctx.drawImage(img, 0, 0, tc.width, tc.height);
     }
 
-    // Start title character animation (smug face floating with glow)
-    startTitleCharAnim();
-
-    // Wire up title character tap reaction
-    const titleCharEl = document.getElementById('title-char');
+    // Wire up title character tap reaction (static img — no canvas loop needed)
+    const titleCharEl = document.getElementById('title-char-img');
     if (titleCharEl) {
       titleCharEl.addEventListener('click', e => { e.stopPropagation(); pokeTitleChar(); });
       titleCharEl.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); pokeTitleChar(); }, {passive:false});
