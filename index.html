@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260415231841">
+<meta name="build" content="20260415232207">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1850,7 +1850,8 @@ document.getElementById('btn-tutorial-go').addEventListener('click',(e)=>{
   e.stopPropagation();
   if(G._pendingStage){
     localStorage.setItem('oof_played_before','1');
-    unlockAchievement('tutorial_done'); // read the manual, legend
+    unlockAchievement('tutorial_done');
+    G._pendingCoach=true; // tell startPlaying to activate coaching this run
     showScreen(null);launchStage(G._pendingStage);G._pendingStage=null;
   }else{renderStageSelect();}
 });
@@ -2466,9 +2467,11 @@ async function startPlaying(){
   G.accountabilityFull=false;G.handcuffsTimer=0;
   G._sessionSlices=[];G._alarmTimer=0;
   G.bossActive=false;G.bossTriggered={};
-  // Coaching system
+  // Coaching system — active when flag was set by UNLEASH HELL, consumed once
+  const coachThisRun = G._pendingCoach === true;
+  G._pendingCoach = false;
   G._coach = {
-    active: !localStorage.getItem('oof_played_before'),
+    active: coachThisRun,
     phase: 0, firstSlice: false, firstBomb: false, firstPowerup: false,
     firstComboHinted: false, arrowTarget: null, flashAlpha: 0,
     bombTimer: 0, powerupTimer: 0, comboTimer: 0,
