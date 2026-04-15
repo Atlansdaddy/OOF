@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260415234525">
+<meta name="build" content="20260415235405">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -2287,6 +2287,85 @@ function drawCoach() {
   }
 }
 
+// ── "Ready?" slam screen between coaching and full gameplay ──
+function drawReadySlam(){
+  if(!G._readySlam) return;
+  const s = G._readySlam;
+  const progress = 1 - (s.timer / 3.0); // 0→1 over 3 seconds
+  const now = performance.now();
+
+  // Phases: 0-0.4s = slam in, 0.4-2.5s = hold, 2.5-3.0s = fade out
+  let alpha;
+  if(progress < 0.13)      alpha = progress / 0.13;         // fast slam in
+  else if(progress < 0.83) alpha = 1.0;                     // hold
+  else                     alpha = 1 - (progress - 0.83) / 0.17; // fade out
+
+  alpha = Math.max(0, Math.min(1, alpha));
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // Dark overlay
+  ctx.fillStyle = 'rgba(0,0,0,0.88)';
+  ctx.fillRect(0,0,CFG.W,CFG.H);
+
+  // Subtle pulse on the hold phase
+  const pulse = progress > 0.13 && progress < 0.83
+    ? 0.04 * Math.sin(now / 120) : 0;
+
+  const cx = CFG.W / 2;
+
+  // Top tag line
+  ctx.font = 'bold 11px Arial,sans-serif';
+  ctx.fillStyle = 'rgba(255,140,0,0.7)';
+  ctx.textAlign = 'center';
+  ctx.letterSpacing = '3px';
+  ctx.fillText('BRIEFING COMPLETE', cx, CFG.H * 0.32);
+  ctx.letterSpacing = '0px';
+
+  // Main line
+  const msgs = [
+    "YOU'RE ON YOUR OWN.",
+    'NO PRESSURE.',
+    'TRY NOT TO LOSE DEMOCRACY.',
+    "DON'T EMBARRASS YOURSELF.",
+  ];
+  // Pick one deterministically per run
+  const msgIdx = Math.floor((G.time * 10) % msgs.length);
+  const mainText = msgs[msgIdx] || msgs[0];
+
+  ctx.font = `bold ${Math.round((28 + pulse * 60))}px Arial Black,Impact,sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(255,120,0,0.8)';
+  ctx.shadowBlur = 18;
+  ctx.fillText(mainText, cx, CFG.H * 0.48);
+  ctx.shadowBlur = 0;
+
+  // Sub line
+  ctx.font = 'bold 13px Arial,sans-serif';
+  ctx.fillStyle = 'rgba(255,200,100,0.9)';
+  ctx.fillText('Good luck. You\'ll need it.', cx, CFG.H * 0.58);
+
+  // Countdown dots
+  const totalDots = 3;
+  const dotSpacing = 24;
+  const dotY = CFG.H * 0.68;
+  const dotsRemaining = Math.ceil(s.timer); // 3→2→1
+  for(let i = 0; i < totalDots; i++){
+    const dx = cx + (i - 1) * dotSpacing;
+    const lit = (totalDots - i) <= dotsRemaining;
+    ctx.beginPath();
+    ctx.arc(dx, dotY, 7, 0, Math.PI * 2);
+    ctx.fillStyle = lit ? '#ff8c00' : 'rgba(255,255,255,0.18)';
+    if(lit){ ctx.shadowColor='#ff8c00'; ctx.shadowBlur=10; }
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
 function render(){
   // When not actively playing, just black out the canvas — HTML screens cover it
   if(G.state==='dead'||G.state==='won'){
@@ -2331,7 +2410,7 @@ function render(){
   // Distortion: flip screen
   if(G.distortion&&G.distortion.effect==='flip'){ctx.translate(CFG.W,CFG.H);ctx.rotate(Math.PI);}
 
-  drawParticles();drawTrail();drawPopups();drawQuoteFlashes();drawBombMsgs();drawMeters();drawCoach();drawHUD();drawTicker();
+  drawParticles();drawTrail();drawPopups();drawQuoteFlashes();drawBombMsgs();drawMeters();drawCoach();drawReadySlam();drawHUD();drawTicker();
 
   // Combo announcement (big center text)
   if(G.comboAnnounce){
@@ -2507,7 +2586,7 @@ async function startPlaying(){
   G._tickerFull=TICKER_HEADLINES.join('  ◆  ');
   G._tickerX=CFG.W; // start off-screen right
   // Multi-slice
-  G._swipeSlices=0;G._multiSliceTimer=0;
+  G._swipeSlices=0;G._multiSliceTimer=0;G._readySlam=null;
   stopDrone();
   document.getElementById('game').style.boxShadow='';
   showScreen(null);
@@ -2523,7 +2602,7 @@ function loop(ts){
     if(G.slowmo>0){gameDt*=CFG.SLOWMO_RATE;G.slowmo-=dt;if(G.slowmo<0)G.slowmo=0;}
 
     G.time+=gameDt;G.spawnTimer-=gameDt;
-    if(G.spawnTimer<=0){spawnObj();G.spawnTimer=spawnInterval()}
+    if(G.spawnTimer<=0 && !G._readySlam){spawnObj();G.spawnTimer=spawnInterval()}
     if(G.combo>0){G.comboTimer-=gameDt;if(G.comboTimer<=0){G.combo=0;G.recentSlices=[];}}
     // --- Coaching timer updates ---
     if(G._coach && G._coach.active){
@@ -2560,10 +2639,16 @@ function loop(ts){
       }
       // Coaching ends when all phases shown OR 25s game time — whichever comes first
       const allShown = c.firstSlice && c.firstBomb && c.firstPowerup;
-      if(allShown || G.time>=25){
+      if((allShown || G.time>=25) && !G._readySlam){
         c.active=false;
         c.phase=0;
+        G._readySlam = { timer: 3.0 }; // 3s "ready?" beat before full gameplay
       }
+    }
+    // Ready slam countdown
+    if(G._readySlam){
+      G._readySlam.timer -= dt;
+      if(G._readySlam.timer <= 0) G._readySlam = null;
     }
     if(G.shake>0)G.shake*=Math.pow(0.05,dt);
     for(let i=G.trail.length-1;i>=0;i--){G.trail[i].life-=dt;if(G.trail[i].life<=0)G.trail.splice(i,1)}
