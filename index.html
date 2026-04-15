@@ -1169,12 +1169,18 @@ const G = {
   // Coaching system
   _coach: {
     active: false,
-    phase: 0,
+    phase: 0,           // 0=swipe, 1=bomb, 2=powerup, 3=combo, 4=done
     firstSlice: false,
     firstBomb: false,
+    firstPowerup: false,
     firstComboHinted: false,
     arrowTarget: null,
     flashAlpha: 0,
+    bombTimer: 0,       // how long bomb hint has been showing (auto-dismiss at 4s)
+    powerupTimer: 0,    // how long powerup hint has been showing (auto-dismiss at 3s)
+    comboTimer: 0,      // how long combo hint has been showing (auto-dismiss at 3s)
+    forcedBomb: false,  // did we already force-spawn a bomb for the tutorial?
+    forcedPU: false,    // did we already force-spawn a powerup?
   },
 };
 
@@ -1380,6 +1386,10 @@ function spawnPowerup(pu){
     isPowerup:true, powerupDef:pu,
     special:null, hitsLeft:1,
     st:0,lx:0,ly:0,lvx:0,lvy:0,lr:0,lrv:0,rx:0,ry:0,rvx:0,rvy:0,rr:0,rrv:0});
+  if(G._coach && G._coach.active && !G._coach.firstPowerup){
+    G._coach.firstPowerup=true;
+    if(G._coach.phase===0||G._coach.phase===1) G._coach.phase=2; // powerup intro
+  }
 }
 
 function spawnBomb(b){
@@ -2165,103 +2175,84 @@ function drawHUD(){
   }
 }
 
+// ── Coach helper: rounded pill banner ──
+function coachBanner(text, sub, bgCol, txtCol, yCtr){
+  const bw=CFG.W-32, bh=sub?54:38, bx=16, by=yCtr-bh/2, r=10;
+  ctx.save();
+  ctx.fillStyle=bgCol;
+  ctx.beginPath();
+  ctx.moveTo(bx+r,by);ctx.lineTo(bx+bw-r,by);ctx.arcTo(bx+bw,by,bx+bw,by+r,r);
+  ctx.lineTo(bx+bw,by+bh-r);ctx.arcTo(bx+bw,by+bh,bx+bw-r,by+bh,r);
+  ctx.lineTo(bx+r,by+bh);ctx.arcTo(bx,by+bh,bx,by+bh-r,r);
+  ctx.lineTo(bx,by+r);ctx.arcTo(bx,by,bx+r,by,r);ctx.closePath();ctx.fill();
+  ctx.fillStyle=txtCol;ctx.font=`bold ${sub?15:17}px Arial Black,Arial,sans-serif`;
+  ctx.textAlign='center';ctx.shadowColor='rgba(0,0,0,0.9)';ctx.shadowBlur=5;
+  ctx.fillText(text,CFG.W/2,by+(sub?21:bh/2+6));
+  if(sub){ctx.font='11px Arial,sans-serif';ctx.fillStyle='rgba(255,255,255,0.8)';ctx.fillText(sub,CFG.W/2,by+40);}
+  ctx.shadowBlur=0;ctx.restore();
+}
+// ── Coach helper: swipe arrow on target ──
+function coachArrow(tx,ty,col){
+  const now=performance.now(), pulse=0.65+Math.sin(now/180)*0.35, len=62;
+  ctx.save();ctx.globalAlpha=pulse;
+  ctx.strokeStyle=col||'#ff8c00';ctx.lineWidth=4;ctx.lineCap='round';
+  ctx.shadowColor=col||'#ff8c00';ctx.shadowBlur=16;
+  ctx.beginPath();ctx.moveTo(tx-len*0.52,ty-len*0.38);ctx.lineTo(tx+len*0.52,ty+len*0.38);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx+len*0.52,ty+len*0.38);ctx.lineTo(tx+len*0.52-19,ty+len*0.38-5);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx+len*0.52,ty+len*0.38);ctx.lineTo(tx+len*0.52-5,ty+len*0.38-19);ctx.stroke();
+  ctx.shadowBlur=0;ctx.restore();
+}
+// ── Coach helper: big red X over object ──
+function coachCross(ox,oy,r){
+  const now=performance.now(), pulse=0.78+Math.sin(now/110)*0.22, d=r*0.9;
+  ctx.save();ctx.globalAlpha=pulse;ctx.strokeStyle='#ff1111';ctx.lineWidth=5;ctx.lineCap='round';
+  ctx.shadowColor='#ff0000';ctx.shadowBlur=14;
+  ctx.beginPath();ctx.moveTo(ox-d,oy-d);ctx.lineTo(ox+d,oy+d);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ox+d,oy-d);ctx.lineTo(ox-d,oy+d);ctx.stroke();
+  ctx.shadowBlur=0;ctx.restore();
+}
+
 function drawCoach() {
   const c = G._coach;
   if (!c || !c.active) return;
-
   const now = performance.now();
 
-  // White flash on first slice
+  // Orange flash on first slice
   if (c.flashAlpha > 0) {
     ctx.save();
-    ctx.fillStyle = `rgba(255,255,255,${c.flashAlpha})`;
-    ctx.fillRect(0, 0, CFG.W, CFG.H);
+    ctx.fillStyle = `rgba(255,120,0,${c.flashAlpha * 0.5})`;
+    ctx.fillRect(0,0,CFG.W,CFG.H);
     ctx.restore();
-    c.flashAlpha = Math.max(0, c.flashAlpha - 0.06);
+    c.flashAlpha = Math.max(0, c.flashAlpha - 0.055);
   }
 
-  // Phase 0: "SWIPE TO SLICE" hint — before first slice
+  // ── PHASE 0: SWIPE TO SLICE (before first slice) ──
   if (!c.firstSlice) {
-    const target = G.objects.find(o => !o.sliced && !o.isBomb && !o.isPowerup && o.y > 100 && o.y < CFG.H * 0.75);
-    if (target) {
-      c.arrowTarget = {x: target.x, y: target.y};
-    }
-    if (c.arrowTarget) {
-      const ax = c.arrowTarget.x;
-      const ay = c.arrowTarget.y;
-      const pulse = 0.7 + Math.sin(now / 180) * 0.3;
-
-      ctx.save();
-      ctx.globalAlpha = pulse;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.shadowColor = '#ff8c00';
-      ctx.shadowBlur = 12;
-      const len = 55;
-      ctx.beginPath();
-      ctx.moveTo(ax - len * 0.5, ay - len * 0.4);
-      ctx.lineTo(ax + len * 0.5, ay + len * 0.4);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(ax + len * 0.5, ay + len * 0.4);
-      ctx.lineTo(ax + len * 0.5 - 16, ay + len * 0.4 - 4);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(ax + len * 0.5, ay + len * 0.4);
-      ctx.lineTo(ax + len * 0.5 - 4, ay + len * 0.4 - 16);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    const tp = 0.6 + Math.sin(now / 300) * 0.35;
-    ctx.save();
-    ctx.globalAlpha = tp;
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(0, CFG.H * 0.12 - 18, CFG.W, 36);
-    ctx.fillStyle = '#ff8c00';
-    ctx.font = 'bold 18px Arial Black, Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = '#000';
-    ctx.shadowBlur = 6;
-    ctx.fillText('SWIPE TO SLICE', CFG.W / 2, CFG.H * 0.12 + 7);
-    ctx.shadowBlur = 0;
-    ctx.restore();
+    const target = G.objects.find(o => !o.sliced && !o.isBomb && !o.isPowerup && !o.isBoss && o.y > 80 && o.y < CFG.H*0.78);
+    if (target) c.arrowTarget = {x:target.x, y:target.y};
+    if (c.arrowTarget) coachArrow(c.arrowTarget.x, c.arrowTarget.y, '#ff8c00');
+    coachBanner('SWIPE TO SLICE', 'Fast diagonal swipe across an object', 'rgba(0,0,0,0.80)', '#ff8c00', 108);
   }
 
-  // Phase 1: Bomb warning — after first bomb appears
-  if (c.phase === 1 && c.firstBomb) {
+  // ── PHASE 1: BOMB WARNING ──
+  if (c.phase === 1) {
     const bomb = G.objects.find(o => o.isBomb && !o.sliced);
     if (bomb) {
-      const wp = 0.8 + Math.sin(now / 100) * 0.2;
-      ctx.save();
-      ctx.globalAlpha = wp;
-      ctx.fillStyle = '#ff2222';
-      ctx.font = 'bold 14px Arial Black, Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.shadowColor = '#000';
-      ctx.shadowBlur = 8;
-      ctx.fillText('\u26a0 DON\'T SLICE THIS', bomb.x, bomb.y - bomb.r - 22);
-      ctx.shadowBlur = 0;
-      ctx.restore();
-    } else if (c.firstSlice) {
-      c.phase = 0;
+      coachCross(bomb.x, bomb.y, bomb.r);
+      coachBanner('\u26a0 THAT\'S A BOMB', 'DON\'T SLICE IT  —  3 STRIKES = DEAD', 'rgba(140,0,0,0.88)', '#ffffff', CFG.H*0.42);
     }
   }
 
-  // Phase 2: Combo hint
-  if (c.phase === 2 && !c.firstComboHinted) {
-    const cp = 0.7 + Math.sin(now / 150) * 0.25;
-    ctx.save();
-    ctx.globalAlpha = cp;
-    ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 15px Arial Black, Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = '#000';
-    ctx.shadowBlur = 6;
-    ctx.fillText('CHAIN THEM FOR COMBO!', CFG.W / 2, CFG.H * 0.20);
-    ctx.shadowBlur = 0;
-    ctx.restore();
+  // ── PHASE 2: POWER-UP INTRO ──
+  if (c.phase === 2 && c.firstPowerup) {
+    const pu = G.objects.find(o => o.isPowerup && !o.sliced);
+    if (pu) coachArrow(pu.x, pu.y, '#4af');
+    coachBanner('\u26a1 POWER-UP!', 'SLICE IT  —  slow-mo, wipe, trail & more', 'rgba(0,30,110,0.88)', '#66aaff', CFG.H*0.42);
+  }
+
+  // ── PHASE 3: COMBO HINT ──
+  if (c.phase === 3) {
+    coachBanner('\ud83d\udd25 COMBO MULTIPLIER!', 'Slice objects fast in a row — score multiplies!', 'rgba(100,45,0,0.88)', '#ffd700', CFG.H*0.42);
   }
 }
 
@@ -2474,8 +2465,10 @@ async function startPlaying(){
   // Coaching system
   G._coach = {
     active: !localStorage.getItem('oof_played_before'),
-    phase: 0, firstSlice: false, firstBomb: false,
-    firstComboHinted: false, arrowTarget: null, flashAlpha: 0
+    phase: 0, firstSlice: false, firstBomb: false, firstPowerup: false,
+    firstComboHinted: false, arrowTarget: null, flashAlpha: 0,
+    bombTimer: 0, powerupTimer: 0, comboTimer: 0,
+    forcedBomb: false, forcedPU: false,
   };
   // Ticker
   G._tickerFull=TICKER_HEADLINES.join('  ◆  ');
@@ -2499,13 +2492,43 @@ function loop(ts){
     G.time+=gameDt;G.spawnTimer-=gameDt;
     if(G.spawnTimer<=0){spawnObj();G.spawnTimer=spawnInterval()}
     if(G.combo>0){G.comboTimer-=gameDt;if(G.comboTimer<=0){G.combo=0;G.recentSlices=[];}}
-    if(G._coach && G._coach.active && !G._coach.firstComboHinted && G.combo >= 3){
-      G._coach.firstComboHinted = true;
-      G._coach.phase = 2;
-    }
-    if(G._coach && G._coach.active && G.time >= 30){
-      G._coach.active = false;
-      localStorage.setItem('oof_played_before', '1');
+    // --- Coaching timer updates ---
+    if(G._coach && G._coach.active){
+      const c=G._coach;
+      // Force-spawn a bomb at 9s if one hasn't appeared yet
+      if(!c.forcedBomb && G.time>=9 && !c.firstBomb){
+        c.forcedBomb=true;
+        spawnBomb(BOMBS[0]);
+      }
+      // Force-spawn a powerup at 14s if one hasn't appeared yet
+      if(!c.forcedPU && G.time>=14 && !c.firstPowerup){
+        c.forcedPU=true;
+        spawnPowerup(POWERUPS[0]);
+      }
+      // Bomb hint timer — auto-dismiss after 4s
+      if(c.phase===1){
+        c.bombTimer+=gameDt;
+        if(c.bombTimer>=4) { c.phase=0; c.bombTimer=0; }
+      }
+      // Power-up hint timer — auto-dismiss after 3s
+      if(c.phase===2 && c.firstPowerup){
+        c.powerupTimer+=gameDt;
+        if(c.powerupTimer>=3) { c.phase=0; c.powerupTimer=0; }
+      }
+      // Combo hint (phase 3) — fires at combo 3+, auto-dismiss after 3s
+      if(!c.firstComboHinted && G.combo>=3){
+        c.firstComboHinted=true;
+        c.phase=3;
+      }
+      if(c.phase===3){
+        c.comboTimer+=gameDt;
+        if(c.comboTimer>=3) { c.phase=0; c.comboTimer=0; }
+      }
+      // Coaching ends at 30s
+      if(G.time>=30){
+        c.active=false;
+        localStorage.setItem('oof_played_before','1');
+      }
     }
     if(G.shake>0)G.shake*=Math.pow(0.05,dt);
     for(let i=G.trail.length-1;i>=0;i--){G.trail[i].life-=dt;if(G.trail[i].life<=0)G.trail.splice(i,1)}
