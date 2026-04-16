@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260416001619">
+<meta name="build" content="20260416003110">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1803,6 +1803,11 @@ function sliceBomb(o){
   G._facePop=1.0;G._facePopDir=-1; // face reacts to bomb hit
   // Red/yellow explosion particles
   for(let i=0;i<20;i++){const a=rng(0,Math.PI*2),spd=rng(100,250);G.particles.push({x:o.x,y:o.y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,r:rng(3,7),life:0.6,max:0.6,col:b.penalty==='all'?'#ff0000':'#ffcc00',grav:false})}
+  // During tutorial — bomb hit is just a warning, no death/meter spike
+  if(G._coach?.active){
+    G.bombMsgs.push({text:'STRIKE!\nDON\'T SLICE BOMBS',life:1.5,max:1.5});
+    return;
+  }
   // 3 bombs = dead, period
   if(G.bombsHit>=3){
     G.bombMsgs.push({text:'STRIKE THREE\nYOU\'RE OUT',life:1.5,max:1.5});
@@ -1898,11 +1903,15 @@ document.getElementById('shop-back').addEventListener('click',()=>{renderStageSe
 
 // Ready screen — shown after 15s tutorial completes
 document.getElementById('btn-ready-play').addEventListener('click',()=>{
+  G._tutorialPaused=false;
+  G.bombsHit=0; // reset tutorial bomb hits
+  G.meters={war:0,econ:0,scandal:0}; // clean meters for real game
   showScreen(null);
   showBriefing(G.currentStage);  // go to briefing/bet → full game
 });
 document.getElementById('btn-ready-stages').addEventListener('click',()=>{
-  G.state='title'; // reset so stage select works cleanly
+  G._tutorialPaused=false;
+  G.state='title';
   renderStageSelect();
 });
 
@@ -2357,6 +2366,7 @@ function render(){
 
 // ---- METERS ----
 function updateMeters(dt){
+  if(G._coach?.active || G._tutorialPaused) return; // no death during tutorial
   for(const k of ['war','econ','scandal']){
     // DEATH CHECK FIRST — before drain can reduce it
     if(G.meters[k]>=CFG.METER_MAX){G.killedBy=k;die();return}
@@ -2511,7 +2521,7 @@ async function startPlaying(){
   G._tickerFull=TICKER_HEADLINES.join('  ◆  ');
   G._tickerX=CFG.W; // start off-screen right
   // Multi-slice
-  G._swipeSlices=0;G._multiSliceTimer=0;
+  G._swipeSlices=0;G._multiSliceTimer=0;G._tutorialPaused=false;
   stopDrone();
   document.getElementById('game').style.boxShadow='';
   showScreen(null);
@@ -2527,8 +2537,8 @@ function loop(ts){
     if(G.slowmo>0){gameDt*=CFG.SLOWMO_RATE;G.slowmo-=dt;if(G.slowmo<0)G.slowmo=0;}
 
     G.time+=gameDt;
-    // Normal spawning suppressed during coaching tutorial
-    if(!G._coach?.active){ G.spawnTimer-=gameDt; if(G.spawnTimer<=0){spawnObj();G.spawnTimer=spawnInterval()} }
+    // Normal spawning suppressed during coaching tutorial and while ready screen is up
+    if(!G._coach?.active && !G._tutorialPaused){ G.spawnTimer-=gameDt; if(G.spawnTimer<=0){spawnObj();G.spawnTimer=spawnInterval()} }
     if(G.combo>0){G.comboTimer-=gameDt;if(G.comboTimer<=0){G.combo=0;G.recentSlices=[];}}
 
     // ── COACHING SCRIPT ──
@@ -2575,10 +2585,11 @@ function loop(ts){
           }
         }
       }
-      // Hard cutoff at 15s → show ready screen
+      // Hard cutoff at 15s → show ready screen, freeze game
       if(G.time>=15){
         c.active=false;
-        G.objects=[]; // clear all objects
+        G.objects=[];
+        G._tutorialPaused=true;
         showScreen('ready-screen');
       }
     }
