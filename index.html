@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260416043305">
+<meta name="build" content="20260416053305">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -79,12 +79,132 @@ html,body{
 }
 
 /* ---- STAGE SELECT ---- */
-/* ---- SF2 STAGE SELECT ---- */
+/* ---- WORLD MAP STAGE SELECT ---- */
 #stage-select{
-  flex-direction:column;align-items:center;
-  background:#07070f;overflow-y:auto;padding:10px 10px 28px;gap:0;
-  -webkit-overflow-scrolling:touch;
+  flex-direction:column;align-items:stretch;
+  background:#07070f;overflow:hidden;padding:0;gap:0;
 }
+.wm-header-bar{
+  width:100%;display:flex;justify-content:space-between;align-items:center;
+  padding:10px 14px 8px;background:rgba(0,0,0,0.6);
+  border-bottom:2px solid rgba(255,140,0,0.3);flex-shrink:0;
+}
+.wm-title{
+  color:#ff8c00;font-family:'Arial Black',Impact,sans-serif;font-size:13px;
+  letter-spacing:3px;text-transform:uppercase;
+  text-shadow:0 0 14px rgba(255,140,0,0.9);
+  animation:sf2glow 2.2s ease-in-out infinite;
+}
+.wm-stats{font-size:10px;font-family:'Courier New',monospace;letter-spacing:1px}
+.world-map-wrap{
+  position:relative;width:100%;
+  min-height:0;overflow:hidden;
+  background-color:#040c10;
+  background-repeat:no-repeat;
+  background-size:167% 167%;
+  background-position:34% 47%;
+}
+.world-svg{display:none} /* replaced by bg */
+#wm-pins{position:absolute;inset:0;pointer-events:none}
+.world-svg{
+  width:100%;height:100%;display:block;
+}
+.continent{
+  fill:rgba(0,180,80,0.10);stroke:rgba(0,255,100,0.35);stroke-width:0.4;
+}
+.gridline{stroke:rgba(0,255,100,0.12);stroke-width:0.3}
+.gridline.dim{stroke:rgba(0,255,100,0.06);stroke-width:0.2}
+
+/* Pins */
+#wm-pins{position:absolute;inset:0;pointer-events:none}
+.wm-pin{
+  position:absolute;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  cursor:pointer;pointer-events:all;
+  opacity:0;animation:wmPinIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes wmPinIn{to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.wm-pin-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:#ff8c00;
+  box-shadow:0 0 8px #ff8c00,0 0 16px rgba(255,140,0,0.5);
+  animation:dotPulse 1.6s ease-in-out infinite;
+}
+@keyframes dotPulse{0%,100%{box-shadow:0 0 6px #ff8c00}50%{box-shadow:0 0 14px #ff8c00,0 0 28px rgba(255,140,0,0.7)}}
+.wm-dot-chaos{
+  background:#ff3333;
+  animation:chaosPulse 0.6s ease-in-out infinite;
+}
+@keyframes chaosPulse{0%,100%{background:#ff3333;box-shadow:0 0 10px #ff3333}33%{background:#ff8c00;box-shadow:0 0 10px #ff8c00}66%{background:#ffdd00;box-shadow:0 0 10px #ffdd00}}
+.wm-pin-thumb{
+  width:88px;height:70px;border-radius:5px;
+  background-size:cover;background-position:center;
+  border:2px solid rgba(255,140,0,0.85);
+  position:relative;overflow:hidden;
+  transition:transform 0.15s,border-color 0.15s;
+  box-shadow:0 3px 12px rgba(0,0,0,0.9),0 0 10px rgba(255,140,0,0.25);
+}
+.wm-pin-thumb::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,0.7));
+}
+.wm-pin-lock{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:14px;background:rgba(0,0,0,0.6);z-index:1;
+}
+.wm-pin-label{
+  color:#fff;font-family:'Arial Black',sans-serif;font-size:10px;
+  letter-spacing:0.8px;text-transform:uppercase;
+  text-shadow:0 1px 4px #000,0 0 8px #000,-1px 0 2px #000,1px 0 2px #000;
+  white-space:nowrap;background:rgba(0,0,0,0.72);
+  padding:2px 5px;border-radius:3px;margin-top:2px;
+}
+.wm-locked .wm-pin-dot{background:#555;box-shadow:none;animation:none}
+.wm-locked .wm-pin-thumb{border-color:rgba(255,255,255,0.1);filter:grayscale(0.8) brightness(0.5)}
+.wm-locked .wm-pin-label{color:#555}
+.wm-locked{cursor:default}
+.wm-active .wm-pin-thumb{
+  border-color:#fff;transform:scale(1.15);
+  box-shadow:0 0 16px rgba(255,255,255,0.7);
+}
+.wm-active .wm-pin-dot{background:#fff;box-shadow:0 0 12px #fff}
+.wm-meltdown .wm-pin-thumb{border-color:#ff3333}
+
+/* Preview card — absolute overlay at bottom of the map */
+.wm-card-preview{
+  position:absolute;bottom:0;left:0;right:0;
+  display:flex;flex-direction:row;
+  background:linear-gradient(90deg,rgba(20,6,0,0.96),rgba(60,15,0,0.96));
+  border-top:2px solid #ff6600;
+  overflow:hidden;z-index:20;
+  animation:previewSlideIn 0.22s cubic-bezier(0.34,1.1,0.64,1) forwards;
+}
+.wm-card-preview[style*="display:none"]{display:none !important}
+@keyframes previewSlideIn{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.wm-preview-flash{animation:previewFlash 0.4s ease-in-out !important}
+@keyframes previewFlash{0%,100%{background:linear-gradient(90deg,rgba(160,50,0,0.97),rgba(80,10,0,0.97))}50%{background:rgba(255,255,255,0.9)}}
+.wm-preview-thumb{
+  width:110px;min-height:90px;flex-shrink:0;
+  background-size:cover;background-position:center;
+}
+.wm-preview-info{
+  flex:1;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;gap:5px;
+}
+.wm-preview-name{
+  color:#fff;font-family:'Arial Black',Impact,sans-serif;
+  font-size:14px;letter-spacing:2px;text-transform:uppercase;line-height:1.2;
+  text-shadow:0 1px 4px rgba(0,0,0,0.8);
+}
+.wm-preview-ojt{color:rgba(255,215,160,0.95);font-size:11px;letter-spacing:0.3px;line-height:1.45;margin-top:2px;font-style:italic}
+.wm-preview-score{color:#ff8c00;font-size:11px;font-family:'Courier New',monospace;margin-top:2px;letter-spacing:0.5px}
+.wm-preview-btn{
+  margin-top:6px;align-self:flex-start;
+  background:rgba(255,140,0,0.25);border:1px solid rgba(255,140,0,0.7);
+  color:#fff;font-family:'Arial Black',sans-serif;font-size:11px;
+  letter-spacing:2px;padding:7px 18px;border-radius:4px;cursor:pointer;
+  text-transform:uppercase;text-shadow:0 1px 3px rgba(0,0,0,0.6);
+}
+.wm-preview-btn:active{background:rgba(255,140,0,0.55)}
 .sf2-title-bar{
   width:100%;max-width:380px;display:flex;justify-content:space-between;align-items:center;
   padding:6px 2px 10px;border-bottom:2px solid rgba(255,140,0,0.25);margin-bottom:10px;
@@ -494,7 +614,7 @@ html,body{
 // ---- STAGES CONFIG ----
 const STAGES = {
   oval: {
-    name: 'THE OVAL OFFICE', desc: 'Domestic chaos & DOGE collapse',
+    name: 'THE OVAL OFFICE', desc: 'Domestic chaos & DOGE collapse', ojtDesc: 'Where OJT signs 143 exec orders before lunch & fires everyone on Signal',
     unlock: 'start', deathBg: 'assets/screens/goovaloffice.png',
     bgs: ['assets/backgrounds/oval-office/oval1.png','assets/backgrounds/oval-office/oval2b.png','assets/backgrounds/oval-office/oval3.png'],
     deaths: {
@@ -506,7 +626,7 @@ const STAGES = {
             [10000,'Senior Signal Chat Admin'],[25000,'Deputy Undersecretary of Covfefe'],[50000,'Chief Minesweeper, Domestic'],[100000,'Person, Woman, Man, Camera, Annihilator']],
   },
   mara: {
-    name: 'MAR-A-LAGO', desc: 'Corruption, Epstein & classified grift',
+    name: 'MAR-A-LAGO', desc: 'Corruption, Epstein & classified grift', ojtDesc: "OJT's private club where classified docs double as dinner table decor",
     unlock: 'start', deathBg: 'assets/screens/gomaralago.png',
     bgs: ['assets/backgrounds/mar-a-lago/mal1.png','assets/backgrounds/mar-a-lago/mal2.png','assets/backgrounds/mar-a-lago/mal3.png'],
     deaths: {
@@ -518,7 +638,7 @@ const STAGES = {
             [10000,'Guest List Redactor'],[25000,'Senior Classified Stacker'],[50000,'Chief Bathroom Archivist'],[100000,'Person, Woman, Man, Camera, Annihilator']],
   },
   senate: {
-    name: 'THE SENATE CHAMBER', desc: 'Testimony chaos & the Bondi saga',
+    name: 'THE SENATE CHAMBER', desc: 'Testimony chaos & the Bondi saga', ojtDesc: 'Where 53 senators perform democracy while OJT live-tweets from the toilet',
     unlock: 'start', deathBg: 'assets/screens/gosenate.png',
     bgs: ['assets/backgrounds/senate/senate1.png','assets/backgrounds/senate/senate2.png','assets/backgrounds/senate/senate3.png'],
     deaths: {
@@ -530,7 +650,7 @@ const STAGES = {
             [10000,'Subcommittee Chair, TBD'],[25000,'Congressional Record Eraser'],[50000,'Senior Contempt Specialist'],[100000,'Person, Woman, Man, Camera, Annihilator']],
   },
   hormuz: {
-    name: 'STRAIT OF HORMUZ', desc: 'Iran war, mines & oil crisis',
+    name: 'STRAIT OF HORMUZ', desc: 'Iran war, mines & oil crisis', ojtDesc: "OJT threatens to toll the world's oil supply — $2M per tanker, payable to OJT LLC",
     unlock: 5000, deathBg: 'assets/screens/gohormuz.png',
     bgs: ['assets/backgrounds/hormuz/soh1.png','assets/backgrounds/hormuz/soh2.png','assets/backgrounds/hormuz/soh3.png'],
     deaths: {
@@ -542,7 +662,7 @@ const STAGES = {
             [10000,'Strait Traffic Controller'],[25000,'Senior Mine Relocator'],[50000,'Admiral of the Stuck Fleet'],[100000,'Person, Woman, Man, Camera, Annihilator']],
   },
   un: {
-    name: 'UN GENERAL ASSEMBLY', desc: 'Tariff chaos & diplomatic collapse',
+    name: 'UN GENERAL ASSEMBLY', desc: 'Tariff chaos & diplomatic collapse', ojtDesc: '193 nations openly laughing. OJT tariffs everyone. Canada considers war.',
     unlock: 15000, deathBg: 'assets/screens/goun.png',
     bgs: ['assets/backgrounds/un/un1.png','assets/backgrounds/un/un2.png','assets/backgrounds/un/un3.png'],
     deaths: {
@@ -554,7 +674,7 @@ const STAGES = {
             [10000,'Reciprocal Tariff Explainer'],[25000,'Senior Walking-Out Chair'],[50000,'Chief Liberation Day Survivor'],[100000,'Person, Woman, Man, Camera, Annihilator']],
   },
   telaviv: {
-    name: 'TEL AVIV SITUATION ROOM', desc: 'Netanyahu & performative diplomacy',
+    name: 'TEL AVIV SITUATION ROOM', desc: 'Netanyahu & performative diplomacy', ojtDesc: "Bibi Yahoo calls OJT 14x/day. OJT calls him 'my greatest friend.' Ceasefire: pending.",
     unlock: 30000, deathBg: 'assets/screens/gotelaviv.png',
     bgs: ['assets/backgrounds/tel-aviv/sit1.png','assets/backgrounds/tel-aviv/sit2.png','assets/backgrounds/tel-aviv/sit3.png'],
     deaths: {
@@ -566,7 +686,7 @@ const STAGES = {
             [10000,'Senior Handshake Photographer'],[25000,'Board of Peace Janitor'],[50000,'Chief Ceasefire Counter'],[100000,'Person, Woman, Man, Camera, Annihilator']],
   },
   meltdown: {
-    name: 'THE MELTDOWN', desc: 'EVERYTHING AT ONCE',
+    name: 'THE MELTDOWN', desc: 'EVERYTHING AT ONCE', ojtDesc: 'ALL crises simultaneously. OJT is everywhere and nowhere. Reality has left the chat.',
     unlock: 'all10k', deathBg: 'assets/screens/gomeltdown.png',
     bgs: ['assets/backgrounds/meltdown/melt1.png','assets/backgrounds/meltdown/melt2.png'],
     deaths: {
@@ -1293,70 +1413,161 @@ function showScreen(id) {
   if (id === 'title-screen') drawTitleChar('smug');
 }
 
+// Convert real lat/lon to % on the amCharts worldmap SVG
+// Projection: Mercator, leftLon=-169.6, rightLon=190.25, topLat=83.68, botLat=-55.55
+function latLonToMapPct(lat, lon) {
+  const x = (lon - (-169.6)) / (190.25 - (-169.6)) * 100;
+  // Mercator y (approximate)
+  const toRad = d => d * Math.PI / 180;
+  const mercY = l => Math.log(Math.tan(Math.PI/4 + toRad(l)/2));
+  const yTop = mercY(83.68), yBot = mercY(-55.55);
+  const y = (yTop - mercY(lat)) / (yTop - yBot) * 100;
+  return [parseFloat(x.toFixed(2)), parseFloat(y.toFixed(2))];
+}
+
+// All stages use real lat/lon → map %. US East Coast stages (DC/NYC/FL) are
+// all ~75-80°W so they stack in the same pixel column — we spread them VERTICALLY
+// while keeping them on the US East Coast landmass (never push east into Atlantic).
+// Offsets tuned for MAP_ZOOM=1.7, BG_X=36%, BG_Y=55%.
+// Formula: container_pct = 1.7*img_pct - 0.7*BG_PCT
+// Target container positions: UN(21%,32%), SENATE(15%,44%), OVAL(26%,54%), MARA(fixed ~17%,62%)
+const [_dcX, _dcY] = latLonToMapPct(38.9, -77);
+// Zoom=1.667, BG_X=34, BG_Y=55. US East Coast (lon~75°W) lands at container x≈20%.
+// Four US stages spread VERTICALLY at exactly 88px gaps (thumb height) so no overlap:
+//   ASSEMBLY  y≈29%, SENATE y≈40%, OVAL y≈51%, MARA(real) y≈62%
+// Each offset is tuned so the pin appears on North American landmass, not the Atlantic.
+const STAGE_MAP_POS = {
+  un:      [_dcX,      _dcY - 14],        // NYC — upper East Coast, pushed north
+  senate:  [_dcX - 4,  _dcY -  8],        // Senate — mid East Coast
+  oval:    [_dcX + 5,  _dcY -  1],        // Oval Office — DC, slight east for x sep
+  mara:    latLonToMapPct(26.7,  -80.0),  // Palm Beach FL — real coords
+  hormuz:  latLonToMapPct(26.6,   56.5),  // Strait of Hormuz — real (82% container x)
+  telaviv: latLonToMapPct(32.1,   34.8),  // Tel Aviv, Israel — real (72% container x)
+  meltdown:latLonToMapPct(51,    -10),    // North Atlantic, west of Ireland — global chaos
+};
+
 function renderStageSelect() {
   const el = document.getElementById('stage-select');
+
+  const mapSVG = ``; // map set as background-image on the wrap below
+
   el.innerHTML = `
-    <div class="sf2-title-bar">
-      <div class="sf2-header">CHOOSE STAGE</div>
-      <div class="sf2-currency">
-        <div style="color:#888">SCORE <span style="color:#ff8c00;font-weight:bold">${save.totalScore.toLocaleString()}</span></div>
-        <div style="color:#888">$OJT &nbsp;<span style="color:#ffd700;font-weight:bold">${save.ojt.toLocaleString()}</span></div>
+    <div class="wm-header-bar">
+      <div class="wm-title">CHOOSE YOUR BATTLEGROUND</div>
+      <div class="wm-stats">
+        <span style="color:#888">SCORE&nbsp;<b style="color:#ff8c00">${save.totalScore.toLocaleString()}</b></span>
+        &nbsp;&nbsp;
+        <span style="color:#888">$OJT&nbsp;<b style="color:#ffd700">${save.ojt.toLocaleString()}</b></span>
       </div>
     </div>
-    <div class="sf2-grid" id="sf2-grid"></div>
-    <div class="sf2-util-row">
+    <div class="world-map-wrap" id="world-map-wrap">
+      ${mapSVG}
+      <div id="wm-pins"></div>
+      <div class="wm-card-preview" id="wm-card-preview" style="display:none"></div>
+    </div>
+    <div class="sf2-util-row" style="max-width:100%;padding:0 10px">
       <button class="sf2-util-btn" id="btn-shop" style="background:rgba(255,215,0,0.12);color:#ffd700;border:1px solid rgba(255,215,0,0.3)">💰 SHOP</button>
       <button class="sf2-util-btn" id="btn-howto" style="background:rgba(255,255,255,0.06);color:#aaa;border:1px solid rgba(255,255,255,0.12)">❓ HOW TO PLAY</button>
     </div>
   `;
 
-  // Re-bind util buttons (innerHTML wiped old listeners)
+  // Size map — preview card is now an overlay inside the wrap, so no space deduction
+  requestAnimationFrame(() => {
+    const wrap = document.getElementById('world-map-wrap');
+    const header = el.querySelector('.wm-header-bar');
+    const util = el.querySelector('.sf2-util-row');
+    if(wrap && header && util) {
+      const available = Math.min(el.offsetHeight, window.innerHeight);
+      const used = header.offsetHeight + util.offsetHeight;
+      wrap.style.height = (available - used) + 'px';
+    }
+    if(wrap) {
+      wrap.style.backgroundImage = `url('assets/ui/worldmap_game.svg?v=${_BUILD_V}')`;
+      wrap.style.backgroundSize = '167% 167%';
+      wrap.style.backgroundPosition = '34% 47%';
+    }
+  });
+
   document.getElementById('btn-shop').addEventListener('click', () => showScreen('shop-screen'));
   document.getElementById('btn-howto').addEventListener('click', (e) => {
-    e.stopPropagation();
-    showScreen('tutorial-screen');
+    e.stopPropagation(); showScreen('tutorial-screen');
     document.getElementById('btn-tutorial-go').style.display='none';
     document.getElementById('btn-tutorial-replay').style.display='block';
     document.getElementById('btn-tutorial-back').style.display='block';
     setTimeout(()=>{if(window.drawTutIcons)drawTutIcons();},50);
   });
 
-  const grid = document.getElementById('sf2-grid');
+  const pinsEl = document.getElementById('wm-pins');
+  const preview = document.getElementById('wm-card-preview');
+  let activePinKey = null;
+
+  // Zoom=5/3 derived algebraically: Tel Aviv at 72%, Hormuz at 82% anchors the Middle East.
+  // Formula: container_pct = ZOOM * img_pct - (ZOOM-1) * BG_POS_pct
+  const MAP_ZOOM = 1.667, MAP_BG_X = 34, MAP_BG_Y = 47;
+
   STAGE_ORDER.forEach((key, i) => {
     const st = STAGES[key];
     const unlocked = isUnlocked(key);
     const sd = save.stages[key];
-    const featured = key === 'meltdown';
+    const [imgX, imgY] = STAGE_MAP_POS[key];
+    // Transform from image-% to container-% accounting for zoom & pan
+    const lx = MAP_ZOOM * imgX - (MAP_ZOOM - 1) * MAP_BG_X;
+    const ly = MAP_ZOOM * imgY - (MAP_ZOOM - 1) * MAP_BG_Y;
+    const isMeltdown = key === 'meltdown';
 
-    const card = document.createElement('div');
-    card.className = 'sf2-card' + (unlocked ? '' : ' locked') + (featured ? ' featured' : '');
-    card.style.backgroundImage = `url('${st.bgs[0]}?v=${_BUILD_V}')`;
-    card.style.animationDelay = `${i * 60}ms`;
+    const pin = document.createElement('div');
+    pin.className = 'wm-pin' + (unlocked ? '' : ' wm-locked') + (isMeltdown ? ' wm-meltdown' : '');
+    pin.style.left = lx + '%';
+    pin.style.top = ly + '%';
+    pin.style.animationDelay = `${i * 80}ms`;
 
-    const lockInfo = st.unlock === 'all10k'
-      ? '★ MASTER ALL STAGES'
-      : `NEED ${st.unlock.toLocaleString()} TOTAL`;
-    const subLine = unlocked
-      ? (sd.best > 0 ? `BEST ${sd.best.toLocaleString()} · ${sd.games} RUNS` : st.desc)
-      : lockInfo;
-
-    card.innerHTML = `
-      ${!unlocked ? '<div class="sf2-lock-icon">🔒</div>' : ''}
-      ${unlocked && sd.best > 0 ? `<div class="sf2-best-badge">${sd.best.toLocaleString()}</div>` : ''}
-      <div class="sf2-nameplate">
-        <div class="sn">${st.name}</div>
-        <div class="sd">${subLine}</div>
+    pin.innerHTML = `
+      <div class="wm-pin-dot ${isMeltdown ? 'wm-dot-chaos' : ''}"></div>
+      <div class="wm-pin-thumb" style="background-image:url('${st.bgs[0]}?v=${_BUILD_V}')">
+        ${!unlocked ? '<div class="wm-pin-lock">🔒</div>' : ''}
       </div>
+      <div class="wm-pin-label">${st.name.split(' ').slice(-1)[0]}</div>
     `;
 
     if (unlocked) {
-      card.addEventListener('click', () => {
-        if (card.classList.contains('selecting')) return;
-        card.classList.add('selecting');
-        setTimeout(() => launchStage(key), 550);
+      pin.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Deselect if same pin
+        if (activePinKey === key) {
+          activePinKey = null;
+          preview.style.display = 'none';
+          pinsEl.querySelectorAll('.wm-pin').forEach(p => p.classList.remove('wm-active'));
+          return;
+        }
+        activePinKey = key;
+        pinsEl.querySelectorAll('.wm-pin').forEach(p => p.classList.remove('wm-active'));
+        pin.classList.add('wm-active');
+        // Show preview card
+        const scoreInfo = sd.best > 0 ? `★ BEST: ${sd.best.toLocaleString()} · ${sd.games} RUNS` : (st.unlock==='start'?'★ UNLOCKED':'NEED '+st.unlock.toLocaleString());
+        preview.style.display = 'flex';
+        preview.innerHTML = `
+          <div class="wm-preview-thumb" style="background-image:url('${st.bgs[0]}?v=${_BUILD_V}')"></div>
+          <div class="wm-preview-info">
+            <div class="wm-preview-name">${st.name}</div>
+            <div class="wm-preview-ojt">${st.ojtDesc||st.desc}</div>
+            <div class="wm-preview-score">${scoreInfo}</div>
+            <button class="wm-preview-btn" id="wm-launch-btn">ENTER STAGE →</button>
+          </div>
+        `;
+        document.getElementById('wm-launch-btn').addEventListener('click', () => {
+          preview.classList.add('wm-preview-flash');
+          setTimeout(() => launchStage(key), 400);
+        });
       });
     }
-    grid.appendChild(card);
+    pinsEl.appendChild(pin);
+  });
+
+  // Tap anywhere on map to deselect
+  document.getElementById('world-map-wrap').addEventListener('click', () => {
+    activePinKey = null;
+    preview.style.display = 'none';
+    pinsEl.querySelectorAll('.wm-pin').forEach(p => p.classList.remove('wm-active'));
   });
 
   showScreen('stage-select');
