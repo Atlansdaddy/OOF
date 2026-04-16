@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260416042029">
+<meta name="build" content="20260416043305">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -79,42 +79,86 @@ html,body{
 }
 
 /* ---- STAGE SELECT ---- */
+/* ---- SF2 STAGE SELECT ---- */
 #stage-select{
   flex-direction:column;align-items:center;
-  background:#0a0a14;overflow-y:auto;padding:16px 12px 30px;gap:10px;
+  background:#07070f;overflow-y:auto;padding:10px 10px 28px;gap:0;
   -webkit-overflow-scrolling:touch;
 }
-#stage-select .header{
-  color:#ff8c00;font-family:'Arial Black',sans-serif;font-size:18px;
-  text-transform:uppercase;letter-spacing:2px;margin:8px 0 4px;
-  text-shadow:0 0 15px rgba(255,140,0,0.3);
+.sf2-title-bar{
+  width:100%;max-width:380px;display:flex;justify-content:space-between;align-items:center;
+  padding:6px 2px 10px;border-bottom:2px solid rgba(255,140,0,0.25);margin-bottom:10px;
 }
-#stage-select .total-score{color:#888;font-size:12px;margin-bottom:8px}
-.stage-card{
-  width:100%;max-width:360px;background:rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.08);border-radius:10px;
-  padding:14px 16px;cursor:pointer;position:relative;
-  transition:background 0.15s;
+.sf2-header{
+  color:#ff8c00;font-family:'Arial Black',Impact,sans-serif;font-size:20px;
+  text-transform:uppercase;letter-spacing:4px;
+  text-shadow:0 0 18px rgba(255,140,0,0.9),0 0 40px rgba(255,140,0,0.4);
+  animation:sf2glow 2.2s ease-in-out infinite;
 }
-.stage-card:active{background:rgba(255,255,255,0.08)}
-.stage-card.locked{opacity:0.4;pointer-events:none}
-.stage-card .stage-name{
-  color:#fff;font-family:'Arial Black',sans-serif;font-size:14px;
-  text-transform:uppercase;letter-spacing:1px;
+@keyframes sf2glow{0%,100%{text-shadow:0 0 18px rgba(255,140,0,0.9)}50%{text-shadow:0 0 28px #ff8c00,0 0 55px rgba(255,140,0,0.6)}}
+.sf2-currency{text-align:right;font-family:'Courier New',monospace;font-size:11px;line-height:1.6}
+.sf2-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:7px;
+  width:100%;max-width:380px;
 }
-.stage-card .stage-desc{color:#888;font-size:11px;margin-top:2px}
-.stage-card .stage-stats{
-  display:flex;gap:16px;margin-top:8px;
+.sf2-card{
+  position:relative;overflow:hidden;border-radius:5px;cursor:pointer;
+  border:3px solid rgba(255,140,0,0.5);
+  aspect-ratio:1.15/1;
+  background-size:cover;background-position:center;
+  transform:translateY(35px) scale(0.88);opacity:0;
+  animation:sf2wavein 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  -webkit-tap-highlight-color:transparent;
 }
-.stage-card .stat{color:#aaa;font-size:11px}
-.stage-card .stat span{color:#ff8c00;font-weight:bold}
-.stage-card .lock-info{
-  color:#ff4444;font-size:11px;margin-top:6px;font-style:italic;
+@keyframes sf2wavein{to{transform:translateY(0) scale(1);opacity:1}}
+.sf2-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.05) 30%,rgba(0,0,0,0.88) 100%);
+  pointer-events:none;
 }
-.stage-card .best-title{
-  color:#ffd700;font-size:10px;margin-top:4px;font-style:italic;
-  text-transform:uppercase;letter-spacing:0.5px;
+.sf2-card.locked{
+  filter:grayscale(0.85) brightness(0.45);
+  border-color:rgba(255,255,255,0.1);pointer-events:none;
 }
+.sf2-card.featured{grid-column:1/-1;aspect-ratio:2.4/1}
+.sf2-card.selecting{animation:sf2flash 0.11s ease-in-out 5 !important}
+@keyframes sf2flash{
+  0%,100%{border-color:#ff8c00;box-shadow:0 0 18px rgba(255,140,0,0.8)}
+  50%{border-color:#fff;box-shadow:0 0 30px rgba(255,255,255,1),0 0 60px rgba(255,140,0,0.5)}
+}
+.sf2-nameplate{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:5px 8px 6px;
+  background:linear-gradient(90deg,rgba(160,50,0,0.97),rgba(100,20,0,0.97));
+  border-top:2px solid #ff6600;
+}
+.sf2-nameplate .sn{
+  color:#fff;font-family:'Arial Black',Impact,sans-serif;
+  font-size:9px;letter-spacing:1.5px;text-transform:uppercase;line-height:1.2;
+}
+.sf2-nameplate .sd{
+  color:rgba(255,200,120,0.85);font-size:8px;letter-spacing:0.3px;
+  margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.sf2-lock-icon{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);
+  font-size:26px;opacity:0.55;pointer-events:none;
+}
+.sf2-best-badge{
+  position:absolute;top:5px;right:5px;
+  background:rgba(0,0,0,0.7);border:1px solid rgba(255,215,0,0.5);
+  color:#ffd700;font-size:8px;font-family:'Arial Black',sans-serif;
+  padding:2px 5px;border-radius:3px;letter-spacing:0.5px;
+}
+.sf2-util-row{
+  display:flex;gap:8px;width:100%;max-width:380px;margin-top:10px;
+}
+.sf2-util-btn{
+  flex:1;padding:8px;font-size:10px;font-family:'Arial Black',sans-serif;
+  text-transform:uppercase;letter-spacing:1px;border:none;border-radius:5px;
+  cursor:pointer;transition:filter 0.1s;
+}
+.sf2-util-btn:active{filter:brightness(1.3)}
 
 /* ---- DEATH SCREEN ---- */
 #death-screen{
@@ -320,16 +364,7 @@ html,body{
 </div>
 
 <!-- STAGE SELECT -->
-<div class="screen" id="stage-select">
-  <div class="header">SELECT STAGE</div>
-  <div class="total-score" id="total-score-display"></div>
-  <div style="display:flex;gap:12px;margin-bottom:8px;align-items:center">
-    <div style="color:#ffd700;font-family:'Courier New',monospace;font-size:14px" id="ojt-display"></div>
-    <button style="padding:6px 14px;font-size:11px;font-family:'Arial Black',sans-serif;text-transform:uppercase;border:none;border-radius:6px;cursor:pointer;background:rgba(255,215,0,0.15);color:#ffd700;letter-spacing:1px" id="btn-shop">SHOP</button>
-    <button style="padding:6px 14px;font-size:11px;font-family:'Arial Black',sans-serif;text-transform:uppercase;border:none;border-radius:6px;cursor:pointer;background:rgba(255,255,255,0.08);color:#aaa;letter-spacing:1px" id="btn-howto">HOW TO PLAY</button>
-  </div>
-  <div id="stage-list"></div>
-</div>
+<div class="screen" id="stage-select"></div>
 
 <!-- DEATH -->
 <div class="screen" id="death-screen">
@@ -1259,43 +1294,71 @@ function showScreen(id) {
 }
 
 function renderStageSelect() {
-  const list = document.getElementById('stage-list');
-  list.innerHTML = '';
-  document.getElementById('total-score-display').textContent = `Total Score: ${save.totalScore.toLocaleString()}`;
-  document.getElementById('ojt-display').textContent = `$OJT: ${save.ojt.toLocaleString()}`;
+  const el = document.getElementById('stage-select');
+  el.innerHTML = `
+    <div class="sf2-title-bar">
+      <div class="sf2-header">CHOOSE STAGE</div>
+      <div class="sf2-currency">
+        <div style="color:#888">SCORE <span style="color:#ff8c00;font-weight:bold">${save.totalScore.toLocaleString()}</span></div>
+        <div style="color:#888">$OJT &nbsp;<span style="color:#ffd700;font-weight:bold">${save.ojt.toLocaleString()}</span></div>
+      </div>
+    </div>
+    <div class="sf2-grid" id="sf2-grid"></div>
+    <div class="sf2-util-row">
+      <button class="sf2-util-btn" id="btn-shop" style="background:rgba(255,215,0,0.12);color:#ffd700;border:1px solid rgba(255,215,0,0.3)">💰 SHOP</button>
+      <button class="sf2-util-btn" id="btn-howto" style="background:rgba(255,255,255,0.06);color:#aaa;border:1px solid rgba(255,255,255,0.12)">❓ HOW TO PLAY</button>
+    </div>
+  `;
 
-  for (const key of STAGE_ORDER) {
+  // Re-bind util buttons (innerHTML wiped old listeners)
+  document.getElementById('btn-shop').addEventListener('click', () => showScreen('shop-screen'));
+  document.getElementById('btn-howto').addEventListener('click', (e) => {
+    e.stopPropagation();
+    showScreen('tutorial-screen');
+    document.getElementById('btn-tutorial-go').style.display='none';
+    document.getElementById('btn-tutorial-replay').style.display='block';
+    document.getElementById('btn-tutorial-back').style.display='block';
+    setTimeout(()=>{if(window.drawTutIcons)drawTutIcons();},50);
+  });
+
+  const grid = document.getElementById('sf2-grid');
+  STAGE_ORDER.forEach((key, i) => {
     const st = STAGES[key];
     const unlocked = isUnlocked(key);
     const sd = save.stages[key];
+    const featured = key === 'meltdown';
 
     const card = document.createElement('div');
-    card.className = 'stage-card' + (unlocked ? '' : ' locked');
+    card.className = 'sf2-card' + (unlocked ? '' : ' locked') + (featured ? ' featured' : '');
+    card.style.backgroundImage = `url('${st.bgs[0]}?v=${_BUILD_V}')`;
+    card.style.animationDelay = `${i * 60}ms`;
 
-    let html = `<div class="stage-name">${st.name}</div>`;
-    html += `<div class="stage-desc">${st.desc}</div>`;
+    const lockInfo = st.unlock === 'all10k'
+      ? '★ MASTER ALL STAGES'
+      : `NEED ${st.unlock.toLocaleString()} TOTAL`;
+    const subLine = unlocked
+      ? (sd.best > 0 ? `BEST ${sd.best.toLocaleString()} · ${sd.games} RUNS` : st.desc)
+      : lockInfo;
+
+    card.innerHTML = `
+      ${!unlocked ? '<div class="sf2-lock-icon">🔒</div>' : ''}
+      ${unlocked && sd.best > 0 ? `<div class="sf2-best-badge">${sd.best.toLocaleString()}</div>` : ''}
+      <div class="sf2-nameplate">
+        <div class="sn">${st.name}</div>
+        <div class="sd">${subLine}</div>
+      </div>
+    `;
 
     if (unlocked) {
-      html += `<div class="stage-stats">`;
-      html += `<div class="stat">Best: <span>${sd.best > 0 ? sd.best.toLocaleString() : '—'}</span></div>`;
-      html += `<div class="stat">Time: <span>${sd.time > 0 ? Math.floor(sd.time/60)+'m '+Math.floor(sd.time%60)+'s' : '—'}</span></div>`;
-      html += `<div class="stat">Games: <span>${sd.games}</span></div>`;
-      html += `</div>`;
-      if (sd.title) html += `<div class="best-title">${sd.title}</div>`;
-    } else {
-      if (st.unlock === 'all10k') {
-        html += `<div class="lock-info">Score 10,000+ on all other stages</div>`;
-      } else {
-        html += `<div class="lock-info">Unlock at ${st.unlock.toLocaleString()} total score</div>`;
-      }
+      card.addEventListener('click', () => {
+        if (card.classList.contains('selecting')) return;
+        card.classList.add('selecting');
+        setTimeout(() => launchStage(key), 550);
+      });
     }
+    grid.appendChild(card);
+  });
 
-    card.innerHTML = html;
-    if (unlocked) {
-      card.addEventListener('click', () => launchStage(key));
-    }
-    list.appendChild(card);
-  }
   showScreen('stage-select');
 }
 
@@ -1929,17 +1992,7 @@ document.getElementById('btn-tutorial-go').addEventListener('click',(e)=>{
   });
 });
 
-// Shop
-document.getElementById('btn-shop').addEventListener('click',()=>{renderShop()});
-document.getElementById('btn-howto').addEventListener('click',(e)=>{
-  e.stopPropagation();
-  showScreen('tutorial-screen');
-  // Accessed from HOW TO PLAY: hide UNLEASH HELL, show replay + back buttons
-  document.getElementById('btn-tutorial-go').style.display='none';
-  document.getElementById('btn-tutorial-replay').style.display='block';
-  document.getElementById('btn-tutorial-back').style.display='block';
-  setTimeout(()=>{if(window.drawTutIcons)drawTutIcons();},50);
-});
+// Shop — btn-shop/btn-howto are dynamic (created by renderStageSelect), listeners added there
 document.getElementById('btn-tutorial-back').addEventListener('click',()=>{renderStageSelect();});
 document.getElementById('btn-tutorial-replay').addEventListener('click',()=>{
   // Reset ALL tutorial flags so launchStage shows the screen + in-game coaching fires
