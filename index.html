@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260416030748">
+<meta name="build" content="20260416031241">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -938,6 +938,9 @@ const SPRITE_MAP = {
   handcuffs:'assets/screens/accountability.png',
   bibi:'assets/bosses/bibiyahoo.png',
   muskrat:'assets/bosses/elongatedmuskrat.png',
+  meter_war:'assets/ui/War.png',
+  meter_econ:'assets/ui/Economy.png',
+  meter_scandal:'assets/ui/Scandal.png',
 };
 
 // ---- BOSS DEFINITIONS ----
@@ -1978,14 +1981,29 @@ function spawnInterval(){const t=G.time,c=CFG.SPEED_CURVE;for(let i=c.length-1;i
 
 // ---- RENDERING ----
 function drawMeters(){
-  const barW=100,barH=8,gap=14,sx=15,sy=80;
+  const iconSize=22, barW=90, barH=8, gap=12, sx=8, sy=76;
   ['war','econ','scandal'].forEach((key,i)=>{
-    const y=sy+i*(barH+gap),val=G.meters[key]/CFG.METER_MAX;
-    ctx.fillStyle='#888';ctx.font='bold 8px Arial,sans-serif';ctx.textAlign='left';ctx.fillText(METER_LABELS[key],sx,y-2);
-    ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(sx,y,barW,barH);
+    const y=sy+i*(iconSize+gap), val=G.meters[key]/CFG.METER_MAX;
     const pulse=val>0.8?1+Math.sin(performance.now()/100)*0.15:1;
-    ctx.fillStyle=METER_COLORS[key];ctx.globalAlpha=0.7+val*0.3;ctx.fillRect(sx,y,barW*val*pulse,barH);ctx.globalAlpha=1;
-    if(val>0.8){ctx.strokeStyle=METER_COLORS[key];ctx.lineWidth=1;ctx.strokeRect(sx-1,y-1,barW+2,barH+2)}
+    // Icon
+    const icon=assets['meter_'+key];
+    if(icon){
+      const a=val>0.8?1:0.65+val*0.35;
+      ctx.globalAlpha=a;
+      if(val>0.8){ctx.save();ctx.shadowColor=METER_COLORS[key];ctx.shadowBlur=10;}
+      ctx.drawImage(icon,sx,y,iconSize,iconSize);
+      if(val>0.8){ctx.restore();}
+      ctx.globalAlpha=1;
+    } else {
+      ctx.fillStyle='#888';ctx.font='bold 8px Arial,sans-serif';ctx.textAlign='left';ctx.fillText(METER_LABELS[key],sx,y+iconSize*0.7);
+    }
+    // Bar track
+    const bx=sx+iconSize+4, by=y+(iconSize-barH)/2;
+    ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(bx,by,barW,barH);
+    // Bar fill
+    ctx.fillStyle=METER_COLORS[key];ctx.globalAlpha=0.7+val*0.3;
+    ctx.fillRect(bx,by,barW*val*pulse,barH);ctx.globalAlpha=1;
+    if(val>0.8){ctx.strokeStyle=METER_COLORS[key];ctx.lineWidth=1;ctx.strokeRect(bx-1,by-1,barW+2,barH+2)}
   });
 }
 
