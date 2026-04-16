@@ -1176,6 +1176,7 @@ function totalScore() { return save.totalScore; }
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 let scale = 1;
+let inputScale = 1;
 function resize() {
   const dpr=Math.min(window.devicePixelRatio||1,3); // cap at 3x — beyond that is wasteful
   const w=window.innerWidth, h=window.innerHeight, a=CFG.W/CFG.H;
@@ -1183,7 +1184,8 @@ function resize() {
   if(w/h<a){cssW=w;cssH=w/a}else{cssH=h;cssW=h*a}
   canvas.width=cssW*dpr; canvas.height=cssH*dpr;
   canvas.style.width=cssW+'px'; canvas.style.height=cssH+'px';
-  scale=(canvas.width/dpr)/CFG.W*dpr; ctx.setTransform(scale,0,0,scale,0,0);
+  inputScale=cssW/CFG.W;
+  scale=inputScale*dpr; ctx.setTransform(scale,0,0,scale,0,0);
 }
 window.addEventListener('resize',resize); resize();
 
@@ -2155,7 +2157,7 @@ function updateBombMsgs(dt){for(let i=G.bombMsgs.length-1;i>=0;i--){G.bombMsgs[i
 
 // ---- INPUT ----
 const inp={active:false,pts:[]};
-function s2v(sx,sy){const r=canvas.getBoundingClientRect();return{x:(sx-r.left)/scale,y:(sy-r.top)/scale}}
+function s2v(sx,sy){const r=canvas.getBoundingClientRect();return{x:(sx-r.left)/inputScale,y:(sy-r.top)/inputScale}}
 function lineCircle(x1,y1,x2,y2,cx,cy,cr){const dx=x2-x1,dy=y2-y1,fx=x1-cx,fy=y1-cy;const a=dx*dx+dy*dy;if(a<0.001)return(fx*fx+fy*fy)<=cr*cr;const b=2*(fx*dx+fy*dy),c=fx*fx+fy*fy-cr*cr;let disc=b*b-4*a*c;if(disc<0)return false;disc=Math.sqrt(disc);const t1=(-b-disc)/(2*a),t2=(-b+disc)/(2*a);return(t1>=0&&t1<=1)||(t2>=0&&t2<=1)||(t1<0&&t2>1)}
 
 function onMove(x,y,time){
