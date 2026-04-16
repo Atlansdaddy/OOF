@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260416000422">
+<meta name="build" content="20260416001619">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -416,6 +416,15 @@ html,body{
   <div id="btn-tutorial-go">UNLEASH HELL &rarr;</div>
   <button id="btn-tutorial-replay" style="display:none;background:none;border:1px solid rgba(255,140,0,0.35);color:#ff8c00;font-size:11px;font-family:'Arial Black',sans-serif;text-transform:uppercase;letter-spacing:2px;padding:10px 28px;border-radius:8px;cursor:pointer;margin-top:4px">▶ REPLAY TUTORIAL</button>
   <button id="btn-tutorial-back" style="display:none;background:none;border:1px solid rgba(255,255,255,0.1);color:#555;font-size:10px;font-family:'Arial Black',sans-serif;text-transform:uppercase;letter-spacing:2px;padding:8px 24px;border-radius:8px;cursor:pointer;margin-top:2px">← BACK TO STAGES</button>
+</div>
+
+<!-- READY SCREEN — shown after tutorial ends at 15s -->
+<div class="screen" id="ready-screen" style="flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.92);gap:0">
+  <div style="color:rgba(255,140,0,0.65);font-size:10px;font-family:'Arial Black',sans-serif;letter-spacing:4px;text-transform:uppercase;margin-bottom:18px">// BRIEFING COMPLETE //</div>
+  <div id="ready-main" style="color:#fff;font-family:'Arial Black',Impact,sans-serif;font-size:30px;text-transform:uppercase;letter-spacing:1px;text-align:center;text-shadow:0 0 28px rgba(255,100,0,0.9);margin-bottom:10px">YOU'RE ON YOUR OWN.</div>
+  <div style="color:rgba(255,200,100,0.8);font-size:13px;margin-bottom:36px;font-style:italic">Good luck. You'll need it.</div>
+  <button id="btn-ready-play" style="background:linear-gradient(135deg,#cc3300,#ff5500);border:none;color:#fff;font-size:16px;font-family:'Arial Black',sans-serif;text-transform:uppercase;letter-spacing:2px;padding:16px 44px;border-radius:10px;cursor:pointer;box-shadow:0 0 24px rgba(255,80,0,0.5);margin-bottom:14px">LET'S GO &rarr;</button>
+  <button id="btn-ready-stages" style="background:none;border:1px solid rgba(255,255,255,0.18);color:#888;font-size:11px;font-family:'Arial Black',sans-serif;text-transform:uppercase;letter-spacing:2px;padding:10px 28px;border-radius:8px;cursor:pointer">&larr; BACK TO STAGES</button>
 </div>
 
 <!-- WIN -->
@@ -1517,7 +1526,7 @@ function updateObjs(dt){
     if(o.isHandcuffs){o.zigzagPhase+=dt*4;o.x+=Math.sin(o.zigzagPhase)*4.5;}
     if(!o.missed&&o.y>CFG.H+o.r*2&&o.vy>0){
       o.missed=true;
-      if(!o.isBomb&&o.meter){G.meters[o.meter]=Math.min(CFG.METER_MAX,G.meters[o.meter]+o.meterImpact);G.misses++;G.combo=0;sndMiss()}
+      if(!o.isBomb&&o.meter&&!G._coach?.active){G.meters[o.meter]=Math.min(CFG.METER_MAX,G.meters[o.meter]+o.meterImpact);G.misses++;G.combo=0;sndMiss()}
     }
     if(o.y>CFG.H+250)G.objects.splice(i,1);
   }
@@ -1887,6 +1896,16 @@ document.getElementById('btn-tutorial-replay').addEventListener('click',()=>{
 });
 document.getElementById('shop-back').addEventListener('click',()=>{renderStageSelect()});
 
+// Ready screen — shown after 15s tutorial completes
+document.getElementById('btn-ready-play').addEventListener('click',()=>{
+  showScreen(null);
+  showBriefing(G.currentStage);  // go to briefing/bet → full game
+});
+document.getElementById('btn-ready-stages').addEventListener('click',()=>{
+  G.state='title'; // reset so stage select works cleanly
+  renderStageSelect();
+});
+
 // Win screen
 document.getElementById('btn-win-replay').addEventListener('click',()=>{showScreen(null);launchStage(G.currentStage)});
 document.getElementById('btn-win-stages').addEventListener('click',()=>{renderStageSelect()});
@@ -2219,141 +2238,43 @@ function coachCross(ox,oy,r){
 
 function drawCoach() {
   const c = G._coach;
-  if (!c || !c.active) return;
+  if (!c || !c.active || !c.phaseLabel) return;
   const now = performance.now();
 
-  // Orange flash on first slice
+  // Flash on slice
   if (c.flashAlpha > 0) {
-    ctx.save();
-    ctx.fillStyle = `rgba(255,120,0,${c.flashAlpha * 0.5})`;
-    ctx.fillRect(0,0,CFG.W,CFG.H);
-    ctx.restore();
-    c.flashAlpha = Math.max(0, c.flashAlpha - 0.055);
+    ctx.save();ctx.fillStyle=`rgba(255,120,0,${c.flashAlpha*0.45})`;ctx.fillRect(0,0,CFG.W,CFG.H);ctx.restore();
+    c.flashAlpha=Math.max(0,c.flashAlpha-0.05);
   }
 
-  // Phases are mutually exclusive — one clear lesson at a time
-
-  // ── PHASE 1: BOMB WARNING (takes over screen) ──
-  if (c.phase === 1) {
-    const bomb = G.objects.find(o => o.isBomb && !o.sliced);
-    // Dark red vignette
-    ctx.save();
-    ctx.fillStyle='rgba(120,0,0,0.35)';ctx.fillRect(0,0,CFG.W,CFG.H);
-    // Spotlight: punch a bright circle around the bomb
-    if (bomb) {
-      const sp=bomb.r*2.8, pulse=0.5+Math.sin(now/120)*0.5;
-      const grad=ctx.createRadialGradient(bomb.x,bomb.y,bomb.r*0.5,bomb.x,bomb.y,sp);
-      grad.addColorStop(0,'rgba(255,60,0,0.0)');
-      grad.addColorStop(1,`rgba(140,0,0,${0.55+pulse*0.15})`);
-      ctx.fillStyle=grad;ctx.beginPath();ctx.arc(bomb.x,bomb.y,sp,0,Math.PI*2);ctx.fill();
-      coachCross(bomb.x, bomb.y, bomb.r);
+  // Phase-specific decoration
+  if(c.phase===1){
+    // Bomb: red vignette + pulsing X over bomb
+    const bomb=G.objects.find(o=>o.isBomb&&!o.sliced);
+    ctx.save();ctx.fillStyle='rgba(100,0,0,0.28)';ctx.fillRect(0,0,CFG.W,CFG.H);
+    if(bomb) coachCross(bomb.x,bomb.y,bomb.r);
+    ctx.restore();
+  } else if(c.phase===2){
+    // Power-up: blue glow on object
+    const pu=G.objects.find(o=>o.isPowerup&&!o.sliced);
+    if(pu){
+      ctx.save();
+      const pulse=0.4+Math.sin(now/140)*0.4;
+      const grad=ctx.createRadialGradient(pu.x,pu.y,pu.r*0.4,pu.x,pu.y,pu.r*3.5);
+      grad.addColorStop(0,`rgba(80,160,255,${0.3+pulse*0.15})`);grad.addColorStop(1,'rgba(0,0,80,0)');
+      ctx.fillStyle=grad;ctx.beginPath();ctx.arc(pu.x,pu.y,pu.r*3.5,0,Math.PI*2);ctx.fill();
+      coachArrow(pu.x,pu.y,'#44aaff');
+      ctx.restore();
     }
-    ctx.restore();
-    coachBanner('!! THAT\'S A BOMB !!', 'DON\'T SLICE IT  \u00b7  3 strikes = GAME OVER', 'rgba(160,0,0,0.93)', '#ff4444', CFG.H*0.38);
-    return;
+  } else if(c.phase===0){
+    // Slice: orange arrow on nearest target
+    const tgt=G.objects.find(o=>!o.sliced&&!o.isBomb&&!o.isPowerup&&o.y>80&&o.y<CFG.H*0.82);
+    if(tgt) { c.arrowTarget={x:tgt.x,y:tgt.y}; }
+    if(c.arrowTarget) coachArrow(c.arrowTarget.x,c.arrowTarget.y,'#ff8c00');
   }
 
-  // ── PHASE 2: POWER-UP INTRO (takes over) ──
-  if (c.phase === 2 && c.firstPowerup) {
-    const pu = G.objects.find(o => o.isPowerup && !o.sliced);
-    // Blue glow vignette
-    ctx.save();
-    ctx.fillStyle='rgba(0,20,80,0.30)';ctx.fillRect(0,0,CFG.W,CFG.H);
-    if (pu) {
-      const pulse=0.5+Math.sin(now/140)*0.5;
-      const grad=ctx.createRadialGradient(pu.x,pu.y,pu.r*0.5,pu.x,pu.y,pu.r*3.2);
-      grad.addColorStop(0,`rgba(80,160,255,${0.25+pulse*0.2})`);
-      grad.addColorStop(1,'rgba(0,0,80,0.0)');
-      ctx.fillStyle=grad;ctx.beginPath();ctx.arc(pu.x,pu.y,pu.r*3.2,0,Math.PI*2);ctx.fill();
-      coachArrow(pu.x, pu.y, '#44aaff');
-    }
-    ctx.restore();
-    coachBanner('POWER-UP! SLICE IT', 'Slow-mo \u00b7 screen wipe \u00b7 damage trail & more', 'rgba(0,25,100,0.93)', '#66ccff', CFG.H*0.38);
-    return;
-  }
-
-  // ── PHASE 3: COMBO HINT ──
-  if (c.phase === 3) {
-    coachBanner('COMBO MULTIPLIER!', 'Slice fast in a row \u2014 score multiplies!', 'rgba(100,45,0,0.93)', '#ffd700', CFG.H*0.38);
-    return;
-  }
-
-  // ── PHASE 0: SWIPE TO SLICE (default — until first slice) ──
-  if (!c.firstSlice) {
-    const target = G.objects.find(o => !o.sliced && !o.isBomb && !o.isPowerup && !o.isBoss && o.y > 80 && o.y < CFG.H*0.78);
-    if (target) c.arrowTarget = {x:target.x, y:target.y};
-    if (c.arrowTarget) coachArrow(c.arrowTarget.x, c.arrowTarget.y, '#ff8c00');
-    coachBanner('SWIPE TO SLICE', 'Fast diagonal swipe across an object', 'rgba(0,0,0,0.85)', '#ff9922', CFG.H * 0.22);
-  }
-}
-
-// ── "Ready?" slam screen between coaching and full gameplay ──
-// elapsed: 0→3s, then _readySlam is nulled by game loop
-function drawReadySlam(){
-  if(!G._readySlam) return;
-  const elapsed = G._readySlam.elapsed || 0; // 0→3
-  const now = performance.now();
-
-  // alpha envelope: fade in 0-0.3s, hold 0.3-2.5s, fade out 2.5-3.0s
-  let alpha;
-  if(elapsed < 0.3)      alpha = elapsed / 0.3;
-  else if(elapsed < 2.5) alpha = 1.0;
-  else                   alpha = Math.max(0, 1 - (elapsed - 2.5) / 0.5);
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-
-  // Full dark takeover
-  ctx.fillStyle = 'rgba(0,0,0,0.90)';
-  ctx.fillRect(0, 0, CFG.W, CFG.H);
-
-  const cx = CFG.W / 2;
-  const pulse = 0.025 * Math.sin(now / 130);
-
-  // Small tag
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 10px Arial,sans-serif';
-  ctx.fillStyle = 'rgba(255,140,0,0.65)';
-  ctx.fillText('// BRIEFING COMPLETE //', cx, CFG.H * 0.34);
-
-  // Big funny line — stable per run (keyed to score at coaching end, always 0)
-  const msgs = [
-    "YOU'RE ON YOUR OWN.",
-    "TRY NOT TO LOSE DEMOCRACY.",
-    "DON'T EMBARRASS YOURSELF.",
-    "PROBABLY FINE.",
-    "NO PRESSURE.",
-  ];
-  // stable pick: use currentStage hash
-  const stageKeys = Object.keys(STAGES);
-  const idx = stageKeys.indexOf(G.currentStage);
-  const mainText = msgs[Math.max(0,idx) % msgs.length];
-
-  ctx.font = `bold ${Math.round(27 + pulse*50)}px Arial Black,Impact,sans-serif`;
-  ctx.fillStyle = '#ffffff';
-  ctx.shadowColor = 'rgba(255,100,0,0.85)';
-  ctx.shadowBlur = 22;
-  ctx.fillText(mainText, cx, CFG.H * 0.46);
-  ctx.shadowBlur = 0;
-
-  ctx.font = '13px Arial,sans-serif';
-  ctx.fillStyle = 'rgba(255,200,100,0.80)';
-  ctx.fillText("Good luck. You\u2019ll need it.", cx, CFG.H * 0.56);
-
-  // 3 orange dots ticking down: lit = time remaining
-  const dotsLeft = elapsed < 1 ? 3 : elapsed < 2 ? 2 : elapsed < 3 ? 1 : 0;
-  for(let i = 0; i < 3; i++){
-    const dx = cx + (i - 1) * 26;
-    const lit = i < dotsLeft;
-    ctx.beginPath();
-    ctx.arc(dx, CFG.H * 0.67, 7, 0, Math.PI*2);
-    ctx.fillStyle = lit ? '#ff8c00' : 'rgba(255,255,255,0.15)';
-    if(lit){ ctx.shadowColor='#ff8c00'; ctx.shadowBlur=12; }
-    ctx.fill();
-    ctx.shadowBlur=0;
-  }
-
-  ctx.restore();
+  // Banner — always shown at bottom third, text set by script
+  coachBanner(c.phaseLabel, c.phaseSub, c.phaseBg||'rgba(0,0,0,0.85)', c.phaseTx||'#ff9922', CFG.H*0.80);
 }
 
 function render(){
@@ -2400,7 +2321,7 @@ function render(){
   // Distortion: flip screen
   if(G.distortion&&G.distortion.effect==='flip'){ctx.translate(CFG.W,CFG.H);ctx.rotate(Math.PI);}
 
-  drawParticles();drawTrail();drawPopups();drawQuoteFlashes();drawBombMsgs();drawMeters();drawCoach();drawReadySlam();drawHUD();drawTicker();
+  drawParticles();drawTrail();drawPopups();drawQuoteFlashes();drawBombMsgs();drawMeters();drawCoach();drawHUD();drawTicker();
 
   // Combo announcement (big center text)
   if(G.comboAnnounce){
@@ -2562,21 +2483,35 @@ async function startPlaying(){
   G.accountabilityFull=false;G.handcuffsTimer=0;
   G._sessionSlices=[];G._alarmTimer=0;
   G.bossActive=false;G.bossTriggered={};
-  // Coaching system — active when flag was set by UNLEASH HELL, consumed once
+  // Coaching system — scripted tutorial, active only on first run via UNLEASH HELL
   const coachThisRun = G._pendingCoach === true;
   G._pendingCoach = false;
+  // Scripted toss sequence: each entry fires once when G.time >= t
   G._coach = {
     active: coachThisRun,
-    phase: 0, firstSlice: false, firstBomb: false, firstPowerup: false,
-    firstComboHinted: false, arrowTarget: null, flashAlpha: 0,
-    bombTimer: 0, powerupTimer: 0, comboTimer: 0,
-    forcedBomb: false, forcedPU: false,
+    phase: 0,       // 0=slice 1=bomb 2=powerup
+    phaseLabel: '',  // current banner text
+    phaseSub: '',
+    phaseBg: 'rgba(0,0,0,0.85)',
+    phaseTx: '#ff9922',
+    arrowTarget: null,
+    bombTarget: null,
+    flashAlpha: 0,
+    script: [
+      {t:0.8,  done:false, type:'slice'},
+      {t:2.6,  done:false, type:'slice'},
+      {t:4.4,  done:false, type:'slice'},
+      {t:6.4,  done:false, type:'bomb'},
+      {t:9.2,  done:false, type:'pu', puIdx:0},   // Subpoena → slow-mo
+      {t:11.4, done:false, type:'pu', puIdx:2},   // Constitution → wipe
+      {t:13.4, done:false, type:'pu', puIdx:3},   // Protest → damage trail
+    ],
   };
   // Ticker
   G._tickerFull=TICKER_HEADLINES.join('  ◆  ');
   G._tickerX=CFG.W; // start off-screen right
   // Multi-slice
-  G._swipeSlices=0;G._multiSliceTimer=0;G._readySlam=null;
+  G._swipeSlices=0;G._multiSliceTimer=0;
   stopDrone();
   document.getElementById('game').style.boxShadow='';
   showScreen(null);
@@ -2591,54 +2526,61 @@ function loop(ts){
     let gameDt = dt;
     if(G.slowmo>0){gameDt*=CFG.SLOWMO_RATE;G.slowmo-=dt;if(G.slowmo<0)G.slowmo=0;}
 
-    G.time+=gameDt;G.spawnTimer-=gameDt;
-    if(G.spawnTimer<=0 && !G._readySlam){spawnObj();G.spawnTimer=spawnInterval()}
+    G.time+=gameDt;
+    // Normal spawning suppressed during coaching tutorial
+    if(!G._coach?.active){ G.spawnTimer-=gameDt; if(G.spawnTimer<=0){spawnObj();G.spawnTimer=spawnInterval()} }
     if(G.combo>0){G.comboTimer-=gameDt;if(G.comboTimer<=0){G.combo=0;G.recentSlices=[];}}
-    // --- Coaching timer updates ---
+
+    // ── COACHING SCRIPT ──
     if(G._coach && G._coach.active){
       const c=G._coach;
-      // Force-spawn a bomb at 7s if one hasn't appeared yet
-      if(!c.forcedBomb && G.time>=7 && !c.firstBomb){
-        c.forcedBomb=true;
-        spawnBomb(BOMBS[0]);
+      // Fire scripted tosses by time
+      for(const step of c.script){
+        if(!step.done && G.time>=step.t){
+          step.done=true;
+          const cx=CFG.W/2+rng(-35,35), basePos={x:cx,y:CFG.H+CFG.OBJ_R,vx:rng(-25,25),vy:rng(-600,-540)};
+          if(step.type==='slice'){
+            c.phase=0;
+            const pool=getStagePool(); const content=pool[Math.floor(Math.random()*Math.min(pool.length,4))];
+            G.objects.push({...basePos,r:CFG.OBJ_R,rot:0,rotV:rng(-4,4),sliced:false,missed:false,
+              isBomb:false,content,label:content.label,sprite:content.sprite,
+              meter:null,meterImpact:0,pts:content.pts,_tutorial:true,
+              st:0,lx:0,ly:0,lvx:0,lvy:0,lr:0,lrv:0,rx:0,ry:0,rvx:0,rvy:0,rr:0,rrv:0});
+            c.phaseLabel='SWIPE TO SLICE'; c.phaseSub='Fast diagonal swipe across any object';
+            c.phaseBg='rgba(0,0,0,0.85)'; c.phaseTx='#ff9922';
+          } else if(step.type==='bomb'){
+            c.phase=1;
+            const b=BOMBS[0];
+            const bomb={...basePos,r:CFG.OBJ_R+4,rot:0,rotV:rng(-4,4),sliced:false,missed:false,isBomb:true,
+              bombDef:b,label:b.label,sprite:b.sprite,meter:null,meterImpact:0,pts:0,
+              st:0,lx:0,ly:0,lvx:0,lvy:0,lr:0,lrv:0,rx:0,ry:0,rvx:0,rvy:0,rr:0,rrv:0};
+            G.objects.push(bomb); sndBombAppear();
+            c.phaseLabel="!! DON'T SLICE THAT !!"; c.phaseSub='BOMB  \u00b7  3 strikes = GAME OVER';
+            c.phaseBg='rgba(140,0,0,0.92)'; c.phaseTx='#ff4444';
+          } else if(step.type==='pu'){
+            c.phase=2;
+            const pu=POWERUPS[step.puIdx];
+            const puDesc={
+              subpoena:'SLICE IT  \u00b7  slows everything down',
+              freepress:'SLICE IT  \u00b7  reveals all objects briefly',
+              constitution:'SLICE IT  \u00b7  wipes all objects off screen',
+              protest:'SLICE IT  \u00b7  your swipe trail destroys everything',
+            }[pu.id]||'SLICE IT  \u00b7  special effect!';
+            G.objects.push({...basePos,r:CFG.OBJ_R+2,rot:0,rotV:rng(-3,3),sliced:false,missed:false,
+              isBomb:false,content:{id:pu.id,quote:'POWER-UP!',src:''},label:pu.label,sprite:pu.sprite,
+              meter:null,meterImpact:0,pts:50,isPowerup:true,powerupDef:pu,special:null,hitsLeft:1,
+              st:0,lx:0,ly:0,lvx:0,lvy:0,lr:0,lrv:0,rx:0,ry:0,rvx:0,rvy:0,rr:0,rrv:0});
+            c.phaseLabel=`${pu.label}: ${pu.effect.toUpperCase()}`; c.phaseSub=puDesc;
+            c.phaseBg='rgba(0,20,100,0.90)'; c.phaseTx='#66ccff';
+          }
+        }
       }
-      // Force-spawn a powerup at 13s if one hasn't appeared yet
-      // (only after first slice so player has learned to swipe)
-      if(!c.forcedPU && G.time>=13 && !c.firstPowerup){
-        c.forcedPU=true;
-        spawnPowerup(POWERUPS[0]);
-      }
-      // Bomb hint timer — auto-dismiss after 5s
-      if(c.phase===1){
-        c.bombTimer+=gameDt;
-        if(c.bombTimer>=5) { c.phase=0; c.bombTimer=0; }
-      }
-      // Power-up hint timer — auto-dismiss after 4s
-      if(c.phase===2 && c.firstPowerup){
-        c.powerupTimer+=gameDt;
-        if(c.powerupTimer>=4) { c.phase=0; c.powerupTimer=0; }
-      }
-      // Combo hint (phase 3) — fires at combo 3+, auto-dismiss after 3s
-      if(!c.firstComboHinted && G.combo>=3){
-        c.firstComboHinted=true;
-        c.phase=3;
-      }
-      if(c.phase===3){
-        c.comboTimer+=gameDt;
-        if(c.comboTimer>=3) { c.phase=0; c.comboTimer=0; }
-      }
-      // Coaching ends when all phases shown OR 25s game time — whichever comes first
-      const allShown = c.firstSlice && c.firstBomb && c.firstPowerup;
-      if((allShown || G.time>=25) && !G._readySlam){
+      // Hard cutoff at 15s → show ready screen
+      if(G.time>=15){
         c.active=false;
-        c.phase=0;
-        G._readySlam = { elapsed: 0 }; // 3s "ready?" beat before full gameplay
+        G.objects=[]; // clear all objects
+        showScreen('ready-screen');
       }
-    }
-    // Ready slam — elapsed-only, 3s total, then gone
-    if(G._readySlam){
-      G._readySlam.elapsed = (G._readySlam.elapsed||0) + dt;
-      if(G._readySlam.elapsed >= 3.0) G._readySlam = null;
     }
     if(G.shake>0)G.shake*=Math.pow(0.05,dt);
     for(let i=G.trail.length-1;i>=0;i--){G.trail[i].life-=dt;if(G.trail[i].life<=0)G.trail.splice(i,1)}
