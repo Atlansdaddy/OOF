@@ -117,19 +117,24 @@ html,body{
 
 /* Pins */
 #wm-pins{position:absolute;inset:0;pointer-events:none}
+#wm-lines{position:absolute;inset:0;pointer-events:none;z-index:1}
+.wm-geo-dot{
+  position:absolute;transform:translate(-50%,-50%);
+  width:8px;height:8px;border-radius:50%;
+  background:#ff8c00;
+  box-shadow:0 0 8px #ff8c00,0 0 16px rgba(255,140,0,0.5);
+  animation:dotPulse 1.6s ease-in-out infinite;
+  z-index:2;
+}
 .wm-pin{
   position:absolute;transform:translate(-50%,-50%);
   display:flex;flex-direction:column;align-items:center;gap:2px;
   cursor:pointer;pointer-events:all;
   opacity:0;animation:wmPinIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  z-index:3;
 }
 @keyframes wmPinIn{to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-.wm-pin-dot{
-  width:8px;height:8px;border-radius:50%;
-  background:#ff8c00;
-  box-shadow:0 0 8px #ff8c00,0 0 16px rgba(255,140,0,0.5);
-  animation:dotPulse 1.6s ease-in-out infinite;
-}
+.wm-pin-dot{display:none}
 @keyframes dotPulse{0%,100%{box-shadow:0 0 6px #ff8c00}50%{box-shadow:0 0 14px #ff8c00,0 0 28px rgba(255,140,0,0.7)}}
 .wm-dot-chaos{
   background:#ff3333;
@@ -1507,24 +1512,65 @@ function renderStageSelect() {
   // Formula: container_pct = ZOOM * img_pct - (ZOOM-1) * BG_POS_pct
   const MAP_ZOOM = 1.667, MAP_BG_X = 34, MAP_BG_Y = 47;
 
+  // Card display positions (spaced out, no overlap) — separate from geographic dots
+  const CARD_POS = {
+    un:       [6,  12],
+    senate:   [6,  34],
+    oval:     [6,  56],
+    mara:     [6,  78],
+    hormuz:   [72, 72],
+    telaviv:  [52, 32],
+    meltdown: [38, 12],
+  };
+
+  // SVG overlay for leader lines
+  const linesSvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  linesSvg.id = 'wm-lines';
+  linesSvg.setAttribute('viewBox','0 0 100 100');
+  linesSvg.setAttribute('preserveAspectRatio','none');
+  linesSvg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1';
+  document.getElementById('world-map-wrap').appendChild(linesSvg);
+
   STAGE_ORDER.forEach((key, i) => {
     const st = STAGES[key];
     const unlocked = isUnlocked(key);
     const sd = save.stages[key];
     const [imgX, imgY] = STAGE_MAP_POS[key];
-    // Transform from image-% to container-% accounting for zoom & pan
-    const lx = MAP_ZOOM * imgX - (MAP_ZOOM - 1) * MAP_BG_X;
-    const ly = MAP_ZOOM * imgY - (MAP_ZOOM - 1) * MAP_BG_Y;
+    // Geographic position on the container
+    const geoX = MAP_ZOOM * imgX - (MAP_ZOOM - 1) * MAP_BG_X;
+    const geoY = MAP_ZOOM * imgY - (MAP_ZOOM - 1) * MAP_BG_Y;
+    // Card display position (spaced out)
+    const [cardX, cardY] = CARD_POS[key];
     const isMeltdown = key === 'meltdown';
 
+    // Geographic dot at real location
+    const dot = document.createElement('div');
+    dot.className = 'wm-geo-dot' + (isMeltdown ? ' wm-dot-chaos' : '');
+    if(!unlocked){ dot.style.background='#555'; dot.style.boxShadow='none'; dot.style.animation='none'; }
+    dot.style.left = geoX + '%';
+    dot.style.top = geoY + '%';
+    pinsEl.appendChild(dot);
+
+    // Leader line from card center to geo dot
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', cardX);
+    line.setAttribute('y1', cardY);
+    line.setAttribute('x2', geoX);
+    line.setAttribute('y2', geoY);
+    line.setAttribute('stroke', unlocked ? 'rgba(255,140,0,0.35)' : 'rgba(255,255,255,0.08)');
+    line.setAttribute('stroke-width','0.3');
+    line.setAttribute('stroke-dasharray','1,1');
+    line.dataset.key = key;
+    linesSvg.appendChild(line);
+
+    // Card at spaced-out position
     const pin = document.createElement('div');
     pin.className = 'wm-pin' + (unlocked ? '' : ' wm-locked') + (isMeltdown ? ' wm-meltdown' : '');
-    pin.style.left = lx + '%';
-    pin.style.top = ly + '%';
+    pin.style.left = cardX + '%';
+    pin.style.top = cardY + '%';
     pin.style.animationDelay = `${i * 80}ms`;
 
     pin.innerHTML = `
-      <div class="wm-pin-dot ${isMeltdown ? 'wm-dot-chaos' : ''}"></div>
       <div class="wm-pin-thumb" style="background-image:url('${st.bgs[0]}?v=${_BUILD_V}')">
         ${!unlocked ? '<div class="wm-pin-lock">🔒</div>' : ''}
       </div>
@@ -1534,17 +1580,21 @@ function renderStageSelect() {
     if (unlocked) {
       pin.addEventListener('click', (e) => {
         e.stopPropagation();
-        // Deselect if same pin
         if (activePinKey === key) {
           activePinKey = null;
           preview.style.display = 'none';
           pinsEl.querySelectorAll('.wm-pin').forEach(p => p.classList.remove('wm-active'));
+          linesSvg.querySelectorAll('line').forEach(l => l.setAttribute('stroke', l.dataset.key === key ? 'rgba(255,140,0,0.35)' : l.getAttribute('stroke')));
           return;
         }
         activePinKey = key;
         pinsEl.querySelectorAll('.wm-pin').forEach(p => p.classList.remove('wm-active'));
         pin.classList.add('wm-active');
-        // Show preview card
+        // Highlight active line
+        linesSvg.querySelectorAll('line').forEach(l => {
+          l.setAttribute('stroke', l.dataset.key === key ? 'rgba(255,140,0,0.8)' : 'rgba(255,140,0,0.15)');
+          l.setAttribute('stroke-width', l.dataset.key === key ? '0.5' : '0.3');
+        });
         const scoreInfo = sd.best > 0 ? `★ BEST: ${sd.best.toLocaleString()} · ${sd.games} RUNS` : (st.unlock==='start'?'★ UNLOCKED':'NEED '+st.unlock.toLocaleString());
         preview.style.display = 'flex';
         preview.innerHTML = `
@@ -1570,6 +1620,10 @@ function renderStageSelect() {
     activePinKey = null;
     preview.style.display = 'none';
     pinsEl.querySelectorAll('.wm-pin').forEach(p => p.classList.remove('wm-active'));
+    linesSvg.querySelectorAll('line').forEach(l => {
+      l.setAttribute('stroke','rgba(255,140,0,0.35)');
+      l.setAttribute('stroke-width','0.3');
+    });
   });
 
   showScreen('stage-select');
