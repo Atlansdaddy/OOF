@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" preserveAspectRatio="none">
+<rect width="1000" height="600" fill="#040c10"/>
+<!-- Grid lines -->
+<g class="gridlines">
+<line x1="0" y1="100" x2="1000" y2="100" stroke="rgba(0,255,100,0.06)" stroke-width="0.3"/>
+<line x1="0" y1="200" x2="1000" y2="200" stroke="rgba(0,255,100,0.06)" stroke-width="0.3"/>
+<line x1="0" y1="300" x2="1000" y2="300" stroke="rgba(0,255,100,0.12)" stroke-width="0.4"/>
+<line x1="0" y1="400" x2="1000" y2="400" stroke="rgba(0,255,100,0.06)" stroke-width="0.3"/>
+<line x1="0" y1="500" x2="1000" y2="500" stroke="rgba(0,255,100,0.06)" stroke-width="0.3"/>
+<line x1="100" y1="0" x2="100" y2="600" stroke="rgba(0,255,100,0.06)" stroke-width="0.3"/>
+<line x1="200" y1="0" x2="200" y2="600" stroke="rgba(0,255,100,0.06)" stroke-width="0.3"/>
+<line x1="300" y1="0" x2="300" y2="600" stroke="rgba(0,255,100,0.06)" stroke-width="0.3"/>
+<line x1="400" y1="0" x2="400" y2="600" stroke="rgba(0,255,100,0.06)" stroke-width="0.3"/>
+<line x1="500" y1="0" x2="500" y2="600" stroke="rgba(0,255,100,0.12)" stroke-width="0.4"/>
+<line x1="600" y1="0" x2="600" y2="600" stroke="rgba(0,255,100,0.06)" stroke-width="0.3"/>
+<line x1="700" y1="0" x2="700" y2="600" stroke="rgba(0,255,100,0.06)" stroke-width="0.3"/>
+<line x1="800" y1="0" x2="800" y2="600" stroke="rgba(0,255,100,0.06)" stroke-width="0.3"/>
+<line x1="900" y1="0" x2="900" y2="600" stroke="rgba(0,255,100,0.06)" stroke-width="0.3"/>
+</g>
+<!-- North America -->
+<path d="M120,80 L155,75 L190,90 L220,85 L240,95 L250,110 L265,120 L275,140 L280,160 L275,180 L260,195 L255,210 L258,230 L265,245 L270,260 L262,275 L250,280 L240,290 L225,300 L215,295 L205,285 L195,275 L185,280 L175,290 L165,285 L160,270 L155,260 L148,250 L140,245 L135,235 L130,220 L125,200 L128,180 L135,165 L140,150 L138,135 L130,120 L122,105 L120,80Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- Central America -->
+<path d="M175,290 L180,300 L185,310 L190,318 L195,325 L200,332 L198,340 L192,345 L188,338 L182,330 L178,320 L172,310 L170,300 L175,290Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- South America -->
+<path d="M220,330 L235,325 L255,330 L270,340 L280,355 L285,375 L288,395 L285,415 L278,435 L268,450 L258,465 L248,475 L240,485 L235,495 L232,505 L228,490 L225,475 L222,460 L218,445 L215,425 L212,405 L210,385 L208,370 L210,355 L215,340 L220,330Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- Europe -->
+<path d="M450,110 L460,105 L475,108 L490,115 L505,112 L515,118 L520,130 L518,145 L510,155 L505,165 L498,175 L490,180 L480,178 L472,172 L465,165 L458,158 L452,150 L448,140 L445,130 L448,118 L450,110Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- UK/Ireland -->
+<path d="M440,120 L445,115 L450,118 L448,128 L443,132 L438,128 L440,120Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- Scandinavia -->
+<path d="M490,75 L498,70 L505,78 L510,90 L508,105 L502,112 L495,108 L490,98 L488,88 L490,75Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- Africa -->
+<path d="M460,195 L475,190 L495,195 L510,200 L525,210 L535,225 L540,245 L542,265 L540,285 L535,310 L528,335 L518,355 L508,370 L498,380 L488,385 L478,378 L470,365 L465,345 L460,325 L455,305 L452,280 L450,260 L448,240 L450,220 L455,205 L460,195Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- Middle East -->
+<path d="M540,175 L555,168 L570,172 L580,180 L585,192 L582,205 L575,215 L565,220 L555,218 L545,210 L538,200 L535,190 L540,175Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- Russia/Asia -->
+<path d="M520,60 L560,55 L600,58 L650,62 L700,68 L740,75 L770,82 L790,92 L800,105 L795,120 L780,130 L760,135 L735,138 L710,142 L690,148 L670,155 L650,160 L630,158 L610,152 L590,148 L575,145 L560,140 L545,132 L530,125 L520,115 L515,100 L518,80 L520,60Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- India -->
+<path d="M620,185 L635,180 L650,188 L658,200 L660,218 L655,235 L645,250 L635,258 L625,255 L618,242 L612,225 L610,208 L615,195 L620,185Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- China/East Asia -->
+<path d="M680,125 L710,120 L740,128 L760,138 L775,152 L780,168 L775,185 L765,198 L748,208 L730,212 L712,208 L698,198 L688,185 L680,170 L675,155 L678,140 L680,125Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- Japan -->
+<path d="M800,135 L808,130 L815,138 L818,152 L815,165 L808,172 L800,168 L795,155 L798,142 L800,135Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- Southeast Asia -->
+<path d="M720,225 L735,220 L748,228 L755,240 L752,255 L742,268 L730,272 L720,265 L715,252 L712,240 L715,230 L720,225Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- Indonesia -->
+<path d="M700,300 L720,295 L740,298 L760,302 L775,308 L770,318 L755,322 L735,320 L715,315 L705,310 L700,300Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- Australia -->
+<path d="M760,370 L790,360 L820,365 L845,375 L855,392 L850,412 L838,428 L820,438 L800,442 L780,435 L765,422 L758,405 L755,390 L760,370Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- Greenland -->
+<path d="M310,50 L340,45 L360,52 L368,65 L365,80 L355,90 L340,95 L325,90 L315,78 L308,65 L310,50Z"
+  fill="rgba(0,180,80,0.10)" stroke="rgba(0,255,100,0.35)" stroke-width="0.5"/>
+<!-- Scan lines for CRT effect -->
+<g opacity="0.03">
+<line x1="0" y1="0" x2="1000" y2="0" stroke="#0f0" stroke-width="1" stroke-dasharray="2,4"/>
+<line x1="0" y1="10" x2="1000" y2="10" stroke="#0f0" stroke-width="1" stroke-dasharray="2,4"/>
+<line x1="0" y1="20" x2="1000" y2="20" stroke="#0f0" stroke-width="1" stroke-dasharray="2,4"/>
+<line x1="0" y1="30" x2="1000" y2="30" stroke="#0f0" stroke-width="1" stroke-dasharray="2,4"/>
+</g>
+</svg>
