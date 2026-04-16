@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260416010157">
+<meta name="build" content="20260416010357">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1996,17 +1996,6 @@ function drawObj(o){
     ctx.save();ctx.translate(o.rx,o.ry);ctx.rotate(o.rr);ctx.beginPath();ctx.arc(0,0,o.r,-Math.PI*0.5,Math.PI*0.5);ctx.closePath();ctx.fillStyle=col;ctx.fill();ctx.beginPath();ctx.arc(-1,0,o.r*0.72,-Math.PI*0.5,Math.PI*0.5);ctx.closePath();ctx.fillStyle=inner;ctx.fill();ctx.restore();
     ctx.globalAlpha=1;return;
   }
-  // Glow ring — bright GREEN for sliceables (slice me!), skip bombs/powerups/handcuffs (they have their own rings)
-  if(!o.isBomb&&!o.isPowerup&&!o.isHandcuffs&&!o.isBoss){
-    const gc='#44ff44';
-    const pulse=0.55+Math.sin(performance.now()/180)*0.25;
-    ctx.save();ctx.shadowColor=gc;ctx.shadowBlur=18;
-    ctx.strokeStyle=gc;ctx.lineWidth=3;ctx.globalAlpha=pulse;
-    ctx.beginPath();ctx.arc(o.x,o.y,o.r+4,0,Math.PI*2);ctx.stroke();
-    ctx.lineWidth=1.5;ctx.globalAlpha=pulse*0.4;
-    ctx.beginPath();ctx.arc(o.x,o.y,o.r+9,0,Math.PI*2);ctx.stroke();
-    ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.restore();
-  }
   // Red ⚠ above bombs
   if(o.isBomb){
     const wa=0.75+Math.sin(performance.now()/140)*0.2;
@@ -2016,7 +2005,26 @@ function drawObj(o){
   }
   ctx.save();ctx.translate(o.x,o.y);ctx.rotate(o.rot);
   const spriteImg=assets[o.sprite];
-  if(spriteImg){const s=o.r*2.6;ctx.drawImage(spriteImg,-s/2,-s/2,s,s)}
+  if(spriteImg){
+    const s=o.r*2.6;
+    // Sprite-shape outline: shadow traces the alpha channel of the PNG
+    // Draw once with shadow (outline), then again clean on top
+    if(!o.isBoss&&!o.isHandcuffs){
+      const outlineCol = o.isBomb ? '#ff3333' : o.isPowerup ? '#44aaff' : '#44ff44';
+      const pulse = o.isBomb
+        ? 0.85+Math.sin(performance.now()/110)*0.15
+        : o.isPowerup
+          ? 0.7+Math.sin(performance.now()/140)*0.3
+          : 0.6+Math.sin(performance.now()/190)*0.3;
+      const blur = o.isBomb ? 10 : o.isPowerup ? 9 : 7;
+      ctx.save();
+      ctx.shadowColor=outlineCol; ctx.shadowBlur=blur; ctx.globalAlpha=pulse;
+      ctx.drawImage(spriteImg,-s/2,-s/2,s,s); // shadow pass — traces sprite edge
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+      ctx.restore();
+    }
+    ctx.drawImage(spriteImg,-s/2,-s/2,s,s); // clean sprite on top
+  }
   else{ctx.beginPath();ctx.arc(0,0,o.r,0,Math.PI*2);ctx.fillStyle=o.isBomb?'#886644':'#ff8c00';ctx.fill();ctx.strokeStyle=o.isBomb?'#664422':'#cc6600';ctx.lineWidth=2;ctx.stroke();if(!o.isBomb){ctx.beginPath();ctx.ellipse(-o.r*0.05,-o.r*0.88,o.r*0.55,o.r*0.28,-0.15,0,Math.PI*2);ctx.fillStyle='#ffe44d';ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(-7,-5,5.5,6.5,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(7,-5,5.5,6.5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(-6,-4,2.8,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(8,-4,2.8,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(1,5,9,0.15,Math.PI-0.15);ctx.strokeStyle='#7a3000';ctx.lineWidth=1.8;ctx.stroke()}else{ctx.strokeStyle='#ff0000';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,-12);ctx.lineTo(12,12);ctx.stroke();ctx.beginPath();ctx.moveTo(12,-12);ctx.lineTo(-12,12);ctx.stroke()}}
   ctx.restore();
 
@@ -2028,31 +2036,6 @@ function drawObj(o){
   // }
 
   if(!o.isHandcuffs){ctx.fillStyle=o.isBomb?'#ff4444':'#fff';ctx.font=`bold ${o.isBomb?11:10}px Arial,sans-serif`;ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText(o.label,o.x,o.y+o.r+13);ctx.shadowBlur=0;}
-  // Bomb: bright pulsing RED danger ring (DON'T SLICE!)
-  if(o.isBomb){
-    const bp=0.7+Math.sin(performance.now()/120)*0.3;
-    ctx.save();ctx.shadowColor='#ff0000';ctx.shadowBlur=22;
-    ctx.beginPath();ctx.arc(o.x,o.y,o.r+5,0,Math.PI*2);
-    ctx.strokeStyle=`rgba(255,30,30,${bp})`;ctx.lineWidth=4;ctx.stroke();
-    ctx.beginPath();ctx.arc(o.x,o.y,o.r+11,0,Math.PI*2);
-    ctx.strokeStyle=`rgba(255,60,60,${bp*0.45})`;ctx.lineWidth=2;ctx.stroke();
-    ctx.shadowBlur=0;ctx.restore();
-  }
-  // Power-up: bright CYAN/BLUE ring (slice for special power!)
-  if(o.isPowerup){
-    const pc='#44aaff';
-    const pulse=0.65+Math.sin(performance.now()/100)*0.3;
-    ctx.save();ctx.shadowColor=pc;ctx.shadowBlur=24;
-    ctx.beginPath();ctx.arc(o.x,o.y,o.r+5,0,Math.PI*2);
-    ctx.strokeStyle=pc;ctx.globalAlpha=pulse;ctx.lineWidth=4;ctx.stroke();
-    ctx.beginPath();ctx.arc(o.x,o.y,o.r+12,0,Math.PI*2);
-    ctx.strokeStyle=pc;ctx.globalAlpha=pulse*0.4;ctx.lineWidth=2;ctx.stroke();
-    // Rotating arc for extra juice
-    const angle=performance.now()/500;
-    ctx.beginPath();ctx.arc(o.x,o.y,o.r+8,angle,angle+Math.PI*1.1);
-    ctx.strokeStyle='#aaddff';ctx.globalAlpha=pulse*0.6;ctx.lineWidth=2;ctx.stroke();
-    ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.restore();
-  }
   // Handcuffs: golden justice glow + rotating outer ring
   if(o.isHandcuffs&&!o.sliced){
     const t=performance.now();
