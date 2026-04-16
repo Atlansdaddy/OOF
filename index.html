@@ -1432,25 +1432,14 @@ function latLonToMapPct(lat, lon) {
   return [parseFloat(x.toFixed(2)), parseFloat(y.toFixed(2))];
 }
 
-// All stages use real lat/lon → map %. US East Coast stages (DC/NYC/FL) are
-// all ~75-80°W so they stack in the same pixel column — we spread them VERTICALLY
-// while keeping them on the US East Coast landmass (never push east into Atlantic).
-// Offsets tuned for MAP_ZOOM=1.7, BG_X=36%, BG_Y=55%.
-// Formula: container_pct = 1.7*img_pct - 0.7*BG_PCT
-// Target container positions: UN(21%,32%), SENATE(15%,44%), OVAL(26%,54%), MARA(fixed ~17%,62%)
-const [_dcX, _dcY] = latLonToMapPct(38.9, -77);
-// Zoom=1.667, BG_X=34, BG_Y=55. US East Coast (lon~75°W) lands at container x≈20%.
-// Four US stages spread VERTICALLY at exactly 88px gaps (thumb height) so no overlap:
-//   ASSEMBLY  y≈29%, SENATE y≈40%, OVAL y≈51%, MARA(real) y≈62%
-// Each offset is tuned so the pin appears on North American landmass, not the Atlantic.
 const STAGE_MAP_POS = {
-  un:      [_dcX,      _dcY - 14],        // NYC — upper East Coast, pushed north
-  senate:  [_dcX - 4,  _dcY -  8],        // Senate — mid East Coast
-  oval:    [_dcX + 5,  _dcY -  1],        // Oval Office — DC, slight east for x sep
-  mara:    latLonToMapPct(26.7,  -80.0),  // Palm Beach FL — real coords
-  hormuz:  latLonToMapPct(26.6,   56.5),  // Strait of Hormuz — real (82% container x)
-  telaviv: latLonToMapPct(32.1,   34.8),  // Tel Aviv, Israel — real (72% container x)
-  meltdown:latLonToMapPct(51,    -10),    // North Atlantic, west of Ireland — global chaos
+  un:       latLonToMapPct(40.75, -73.97),   // UN HQ, NYC
+  senate:   latLonToMapPct(38.89, -77.01),   // US Capitol, DC
+  oval:     latLonToMapPct(38.90, -77.04),   // White House, DC
+  mara:     latLonToMapPct(26.68, -80.04),   // Mar-a-Lago, Palm Beach FL
+  hormuz:   latLonToMapPct(26.57,  56.25),   // Strait of Hormuz
+  telaviv:  latLonToMapPct(32.07,  34.77),   // Tel Aviv, Israel
+  meltdown: latLonToMapPct(51,    -10),      // North Atlantic, west of Ireland
 };
 
 function renderStageSelect() {
@@ -1511,17 +1500,16 @@ function renderStageSelect() {
   // Formula: container_pct = ZOOM * img_pct - (ZOOM-1) * BG_POS_pct
   const MAP_ZOOM = 1.5, MAP_BG_X = 36, MAP_BG_Y = 46;
 
-  // Card display positions — near geo dots but offset to avoid overlap
-  // Left column: 4 US stages stacked. Right column: 2 Middle East. Top-center: Meltdown.
-  // Geo dots: UN(21,36) Senate(15,45) Oval(28,55) Mara(19,66) Hormuz(76,66) TelAviv(67,62) Meltdown(49,46)
+  // Card positions — spaced to avoid overlap, leader lines connect to geo dots
+  // Geo dots: UN(22,55) Senate(21,57) Oval(21,57) Mara(19,66) Hormuz(76,66) TelAviv(67,62) Meltdown(49,46)
   const CARD_POS = {
-    un:       [12,  8],
-    senate:   [12, 30],
-    oval:     [12, 52],
-    mara:     [12, 74],
-    meltdown: [45,  8],
-    telaviv:  [72, 35],
-    hormuz:   [72, 62],
+    un:       [18,  8],
+    senate:   [18, 30],
+    oval:     [18, 52],
+    mara:     [18, 74],
+    meltdown: [48,  8],
+    telaviv:  [75, 35],
+    hormuz:   [75, 62],
   };
 
   // SVG overlay for leader lines
