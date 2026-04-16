@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260416032157">
+<meta name="build" content="20260416032352">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1031,7 +1031,48 @@ window.addEventListener('resize',resize); resize();
 // ---- ASSETS ----
 const assets = {};
 const _BUILD_V = document.querySelector('meta[name="build"]')?.getAttribute('content') || Date.now();
-function loadImg(key,src){return new Promise(r=>{const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{assets[key]=img;r()};img.onerror=()=>{assets[key]=null;r()};img.src=src+'?v='+_BUILD_V})}
+
+// Flood-fill BG removal: seeds from all 4 edges, only kills pixels connected to the border
+// that are near-white OR near-black. Internal white/black pixels (teeth, pupils, outlines) survive.
+function removeBg(img){
+  try{
+    const oc=document.createElement('canvas');
+    oc.width=img.width; oc.height=img.height;
+    const ox=oc.getContext('2d',{willReadFrequently:true});
+    ox.drawImage(img,0,0);
+    const id=ox.getImageData(0,0,oc.width,oc.height);
+    const d=id.data, W=oc.width, H=oc.height;
+    const visited=new Uint8Array(W*H);
+    const stack=[];
+    const isBg=i=>{
+      const r=d[i],g=d[i+1],b=d[i+2],a=d[i+3];
+      if(a<10) return true;                        // already transparent
+      if(r>215&&g>215&&b>215) return true;          // near-white
+      if(r<40&&g<40&&b<40) return true;             // near-black
+      return false;
+    };
+    // Seed from all 4 edges
+    for(let x=0;x<W;x++){stack.push(x);stack.push(x+(H-1)*W);}
+    for(let y=1;y<H-1;y++){stack.push(y*W);stack.push((W-1)+y*W);}
+    while(stack.length){
+      const idx=stack.pop();
+      if(idx<0||idx>=W*H||visited[idx]) continue;
+      visited[idx]=1;
+      if(isBg(idx*4)){
+        d[idx*4+3]=0;
+        const x=idx%W, y=(idx/W)|0;
+        if(x>0) stack.push(idx-1);
+        if(x<W-1) stack.push(idx+1);
+        if(y>0) stack.push(idx-W);
+        if(y<H-1) stack.push(idx+W);
+      }
+    }
+    ox.putImageData(id,0,0);
+    return oc;
+  }catch(e){return img;}
+}
+
+function loadImg(key,src,strip=false){return new Promise(r=>{const img=new Image();img.onload=()=>{assets[key]=strip?removeBg(img):img;r()};img.onerror=()=>{assets[key]=null;r()};img.src=src+'?v='+_BUILD_V})}
 
 let bgImgs = []; // all loaded bg variants for current stage
 let bgIdx = 0;   // current bg index (progresses with time)
@@ -2666,9 +2707,9 @@ window.onerror=function(msg,src,line){console.error('[OOF]',msg,'@line',line);re
 async function init(){
   try {
     loadSave();
-    const loads=Object.entries(SPRITE_MAP).map(([k,v])=>loadImg(k,v));
-    const hatLoads=SHOP_HATS.map(h=>loadImg('hat_'+h.id, h.sprite));
-    const puLoads=POWERUPS.map(p=>loadImg(p.sprite, p.img));
+    const loads=Object.entries(SPRITE_MAP).map(([k,v])=>loadImg(k,v,true));
+    const hatLoads=SHOP_HATS.map(h=>loadImg('hat_'+h.id, h.sprite, true));
+    const puLoads=POWERUPS.map(p=>loadImg(p.sprite, p.img, true));
     // Individual character expression PNGs
     const exprLoads=Object.entries(EXPR_FILES).map(([k,v])=>loadImg('expr_'+k, v));
     await Promise.all([...loads, ...hatLoads, ...puLoads, ...exprLoads,
