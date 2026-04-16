@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260415235831">
+<meta name="build" content="20260416000422">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -2288,77 +2288,71 @@ function drawCoach() {
 }
 
 // ── "Ready?" slam screen between coaching and full gameplay ──
+// elapsed: 0→3s, then _readySlam is nulled by game loop
 function drawReadySlam(){
   if(!G._readySlam) return;
-  const s = G._readySlam;
-  const DURATION = 3.0;
-  const elapsed = Math.min(s.elapsed || 0, DURATION); // 0→3
-  const progress = elapsed / DURATION;                  // 0→1
+  const elapsed = G._readySlam.elapsed || 0; // 0→3
   const now = performance.now();
 
-  // Phases: 0-0.4s = slam in, 0.4-2.5s = hold, 2.5-3.0s = fade out
+  // alpha envelope: fade in 0-0.3s, hold 0.3-2.5s, fade out 2.5-3.0s
   let alpha;
-  if(progress < 0.13)      alpha = progress / 0.13;
-  else if(progress < 0.83) alpha = 1.0;
-  else                     alpha = 1 - (progress - 0.83) / 0.17;
-  alpha = Math.max(0, Math.min(1, alpha));
+  if(elapsed < 0.3)      alpha = elapsed / 0.3;
+  else if(elapsed < 2.5) alpha = 1.0;
+  else                   alpha = Math.max(0, 1 - (elapsed - 2.5) / 0.5);
 
   ctx.save();
   ctx.globalAlpha = alpha;
 
-  // Dark overlay
-  ctx.fillStyle = 'rgba(0,0,0,0.88)';
-  ctx.fillRect(0,0,CFG.W,CFG.H);
+  // Full dark takeover
+  ctx.fillStyle = 'rgba(0,0,0,0.90)';
+  ctx.fillRect(0, 0, CFG.W, CFG.H);
 
-  const pulse = 0.03 * Math.sin(now / 120);
   const cx = CFG.W / 2;
+  const pulse = 0.025 * Math.sin(now / 130);
 
-  // Top tag — small orange caps
-  ctx.font = 'bold 11px Arial,sans-serif';
-  ctx.fillStyle = 'rgba(255,140,0,0.75)';
+  // Small tag
   ctx.textAlign = 'center';
-  ctx.fillText('// BRIEFING COMPLETE //', cx, CFG.H * 0.33);
+  ctx.font = 'bold 10px Arial,sans-serif';
+  ctx.fillStyle = 'rgba(255,140,0,0.65)';
+  ctx.fillText('// BRIEFING COMPLETE //', cx, CFG.H * 0.34);
 
-  // Main funny line — picked at game-start, stays stable
+  // Big funny line — stable per run (keyed to score at coaching end, always 0)
   const msgs = [
     "YOU'RE ON YOUR OWN.",
-    'NO PRESSURE.',
-    'TRY NOT TO LOSE DEMOCRACY.',
+    "TRY NOT TO LOSE DEMOCRACY.",
     "DON'T EMBARRASS YOURSELF.",
-    'PROBABLY FINE.',
+    "PROBABLY FINE.",
+    "NO PRESSURE.",
   ];
-  const msgIdx = Math.floor(G.time) % msgs.length;
-  const mainText = msgs[msgIdx] || msgs[0];
+  // stable pick: use currentStage hash
+  const stageKeys = Object.keys(STAGES);
+  const idx = stageKeys.indexOf(G.currentStage);
+  const mainText = msgs[Math.max(0,idx) % msgs.length];
 
-  ctx.font = `bold ${Math.round(26 + pulse * 40)}px Arial Black,Impact,sans-serif`;
+  ctx.font = `bold ${Math.round(27 + pulse*50)}px Arial Black,Impact,sans-serif`;
   ctx.fillStyle = '#ffffff';
-  ctx.shadowColor = 'rgba(255,100,0,0.9)';
-  ctx.shadowBlur = 20;
-  ctx.fillText(mainText, cx, CFG.H * 0.47);
+  ctx.shadowColor = 'rgba(255,100,0,0.85)';
+  ctx.shadowBlur = 22;
+  ctx.fillText(mainText, cx, CFG.H * 0.46);
   ctx.shadowBlur = 0;
 
-  // Sub line
   ctx.font = '13px Arial,sans-serif';
-  ctx.fillStyle = 'rgba(255,200,100,0.85)';
-  ctx.fillText("Good luck. You'll need it.", cx, CFG.H * 0.57);
+  ctx.fillStyle = 'rgba(255,200,100,0.80)';
+  ctx.fillText("Good luck. You\u2019ll need it.", cx, CFG.H * 0.56);
 
-  // Countdown dots
-  const totalDots = 3;
-  const dotSpacing = 24;
-  const dotY = CFG.H * 0.68;
-  const dotsRemaining = Math.ceil(s.timer); // 3→2→1
-  for(let i = 0; i < totalDots; i++){
-    const dx = cx + (i - 1) * dotSpacing;
-    const lit = (totalDots - i) <= dotsRemaining;
+  // 3 orange dots ticking down: lit = time remaining
+  const dotsLeft = elapsed < 1 ? 3 : elapsed < 2 ? 2 : elapsed < 3 ? 1 : 0;
+  for(let i = 0; i < 3; i++){
+    const dx = cx + (i - 1) * 26;
+    const lit = i < dotsLeft;
     ctx.beginPath();
-    ctx.arc(dx, dotY, 7, 0, Math.PI * 2);
-    ctx.fillStyle = lit ? '#ff8c00' : 'rgba(255,255,255,0.18)';
-    if(lit){ ctx.shadowColor='#ff8c00'; ctx.shadowBlur=10; }
+    ctx.arc(dx, CFG.H * 0.67, 7, 0, Math.PI*2);
+    ctx.fillStyle = lit ? '#ff8c00' : 'rgba(255,255,255,0.15)';
+    if(lit){ ctx.shadowColor='#ff8c00'; ctx.shadowBlur=12; }
     ctx.fill();
-    ctx.shadowBlur = 0;
+    ctx.shadowBlur=0;
   }
 
-  ctx.globalAlpha = 1;
   ctx.restore();
 }
 
@@ -2638,14 +2632,13 @@ function loop(ts){
       if((allShown || G.time>=25) && !G._readySlam){
         c.active=false;
         c.phase=0;
-        G._readySlam = { timer: 3.0 }; // 3s "ready?" beat before full gameplay
+        G._readySlam = { elapsed: 0 }; // 3s "ready?" beat before full gameplay
       }
     }
-    // Ready slam countdown
+    // Ready slam — elapsed-only, 3s total, then gone
     if(G._readySlam){
       G._readySlam.elapsed = (G._readySlam.elapsed||0) + dt;
-      G._readySlam.timer -= dt;
-      if(G._readySlam.timer <= 0) G._readySlam = null;
+      if(G._readySlam.elapsed >= 3.0) G._readySlam = null;
     }
     if(G.shake>0)G.shake*=Math.pow(0.05,dt);
     for(let i=G.trail.length-1;i>=0;i--){G.trail[i].life-=dt;if(G.trail[i].life<=0)G.trail.splice(i,1)}
