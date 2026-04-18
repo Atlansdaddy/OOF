@@ -175,6 +175,10 @@ html,body{
 }
 .wm-active .wm-pin-dot{background:#fff;box-shadow:0 0 12px #fff}
 .wm-meltdown .wm-pin-thumb{border-color:#ff3333}
+.wm-portal .wm-pin-thumb{border-color:#44ff88;box-shadow:0 3px 12px rgba(0,0,0,0.9),0 0 14px rgba(68,255,136,0.55)}
+.wm-portal .wm-pin-label{color:#88ffaa;background:rgba(0,20,10,0.8)}
+.wm-dot-portal{background:#44ff88 !important;box-shadow:0 0 10px #44ff88,0 0 20px rgba(68,255,136,0.6) !important;animation:portalPulse 1.2s ease-in-out infinite !important}
+@keyframes portalPulse{0%,100%{box-shadow:0 0 8px #44ff88,0 0 18px rgba(68,255,136,0.5);transform:translate(-50%,-50%) scale(1)}50%{box-shadow:0 0 16px #88ffcc,0 0 32px rgba(68,255,136,0.8);transform:translate(-50%,-50%) scale(1.25)}}
 
 /* Preview card — absolute overlay at bottom of the map */
 .wm-card-preview{
@@ -705,6 +709,35 @@ const STAGES = {
   },
 };
 const STAGE_ORDER = ['oval','mara','senate','hormuz','un','telaviv','meltdown'];
+
+// ---- VIBE JAM 2026 PORTAL ----
+// Parse URL params for portal/ref tracking
+const _urlParams = new URLSearchParams(window.location.search);
+const _cameFromPortal = _urlParams.get('portal') === 'true';
+const _portalRef = _urlParams.get('ref') || null;
+// Persist ref for the session so return portal survives navigation
+if (_portalRef) sessionStorage.setItem('vibejam_ref', _portalRef);
+// Also persist all incoming params to forward back
+if (_cameFromPortal) sessionStorage.setItem('vibejam_params', window.location.search);
+const _storedRef = sessionStorage.getItem('vibejam_ref');
+const _storedParams = sessionStorage.getItem('vibejam_params') || '';
+
+// Portal stage definitions — not real stages, just map pins that redirect
+STAGES.portal = {
+  name: 'THE PORTAL', desc: 'Warp to another Vibe Jam 2026 game',
+  ojtDesc: 'Abandon this timeline. Hop to another jam game in the webring.',
+  unlock: 'start', isPortal: true,
+  bgs: ['assets/wave-cards/portal.png'],
+};
+if (_storedRef) {
+  // Build a return-portal "stage" pointing back to ref
+  STAGES.backportal = {
+    name: 'RETURN PORTAL', desc: `Back to ${_storedRef}`,
+    ojtDesc: `Return to ${_storedRef} — the game you came from.`,
+    unlock: 'start', isReturnPortal: true,
+    bgs: ['assets/wave-cards/portal.png'],
+  };
+}
 
 // ---- CONFIGURATION ----
 const CFG = {
@@ -1434,13 +1467,15 @@ function latLonToMapPct(lat, lon) {
 }
 
 const STAGE_MAP_POS = {
-  un:       latLonToMapPct(40.75, -73.97),   // UN HQ, NYC
-  senate:   latLonToMapPct(38.89, -77.01),   // US Capitol, DC
-  oval:     latLonToMapPct(38.90, -77.04),   // White House, DC
-  mara:     latLonToMapPct(26.68, -80.04),   // Mar-a-Lago, Palm Beach FL
-  hormuz:   latLonToMapPct(26.57,  56.25),   // Strait of Hormuz
-  telaviv:  latLonToMapPct(32.07,  34.77),   // Tel Aviv, Israel
-  meltdown: latLonToMapPct(51,    -10),      // North Atlantic, west of Ireland
+  un:         latLonToMapPct(40.75, -73.97),   // UN HQ, NYC
+  senate:     latLonToMapPct(38.89, -77.01),   // US Capitol, DC
+  oval:       latLonToMapPct(38.90, -77.04),   // White House, DC
+  mara:       latLonToMapPct(26.68, -80.04),   // Mar-a-Lago, Palm Beach FL
+  hormuz:     latLonToMapPct(26.57,  56.25),   // Strait of Hormuz
+  telaviv:    latLonToMapPct(32.07,  34.77),   // Tel Aviv, Israel
+  meltdown:   latLonToMapPct(51,    -10),      // North Atlantic, west of Ireland
+  portal:     latLonToMapPct(10,   -145),      // Mid Pacific, empty ocean
+  backportal: latLonToMapPct(-20,  -30),       // South Atlantic, empty ocean
 };
 
 function renderStageSelect() {
@@ -1500,16 +1535,21 @@ function renderStageSelect() {
   const MAP_ZOOM = 1.5, MAP_BG_X = 36, MAP_BG_Y = 46;
 
   // Card positions — spaced to avoid overlap, leader lines connect to geo dots
-  // Geo dots: UN(22,55) Senate(21,57) Oval(21,57) Mara(19,66) Hormuz(76,66) TelAviv(67,62) Meltdown(49,46)
   const CARD_POS = {
-    un:       [18,  8],
-    senate:   [18, 30],
-    oval:     [18, 52],
-    mara:     [18, 74],
-    meltdown: [48,  8],
-    telaviv:  [75, 35],
-    hormuz:   [75, 62],
+    un:         [18,  8],
+    senate:     [18, 30],
+    oval:       [18, 52],
+    mara:       [18, 74],
+    meltdown:   [48,  8],
+    telaviv:    [75, 35],
+    hormuz:     [75, 62],
+    portal:     [48, 90],
+    backportal: [48, 55],
   };
+
+  // Build the render order — always include portal, include backportal only if ref exists
+  const renderKeys = [...STAGE_ORDER, 'portal'];
+  if (STAGES.backportal) renderKeys.push('backportal');
 
   // SVG overlay for leader lines
   const linesSvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -1519,50 +1559,50 @@ function renderStageSelect() {
   linesSvg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1';
   document.getElementById('world-map-wrap').appendChild(linesSvg);
 
-  STAGE_ORDER.forEach((key, i) => {
+  renderKeys.forEach((key, i) => {
     const st = STAGES[key];
-    const unlocked = isUnlocked(key);
-    const sd = save.stages[key];
+    const isPortal = !!st.isPortal;
+    const isReturn = !!st.isReturnPortal;
+    const isSpecial = isPortal || isReturn;
+    const unlocked = isSpecial ? true : isUnlocked(key);
+    const sd = isSpecial ? null : save.stages[key];
     const [imgX, imgY] = STAGE_MAP_POS[key];
-    // Geographic position on the container
     const geoX = MAP_ZOOM * imgX - (MAP_ZOOM - 1) * MAP_BG_X;
     const geoY = MAP_ZOOM * imgY - (MAP_ZOOM - 1) * MAP_BG_Y;
-    // Card display position (spaced out)
     const [cardX, cardY] = CARD_POS[key];
     const isMeltdown = key === 'meltdown';
 
-    // Geographic dot at real location
     const dot = document.createElement('div');
-    dot.className = 'wm-geo-dot' + (isMeltdown ? ' wm-dot-chaos' : '');
+    dot.className = 'wm-geo-dot' + (isMeltdown ? ' wm-dot-chaos' : '') + (isSpecial ? ' wm-dot-portal' : '');
     if(!unlocked){ dot.style.background='#555'; dot.style.boxShadow='none'; dot.style.animation='none'; }
     dot.style.left = geoX + '%';
     dot.style.top = geoY + '%';
     pinsEl.appendChild(dot);
 
-    // Leader line from card center to geo dot
     const line = document.createElementNS('http://www.w3.org/2000/svg','line');
     line.setAttribute('x1', cardX);
     line.setAttribute('y1', cardY);
     line.setAttribute('x2', geoX);
     line.setAttribute('y2', geoY);
-    line.setAttribute('stroke', unlocked ? 'rgba(255,140,0,0.35)' : 'rgba(255,255,255,0.08)');
+    const defaultStroke = isSpecial ? 'rgba(100,255,100,0.45)' : (unlocked ? 'rgba(255,140,0,0.35)' : 'rgba(255,255,255,0.08)');
+    line.setAttribute('stroke', defaultStroke);
     line.setAttribute('stroke-width','0.3');
     line.setAttribute('stroke-dasharray','1,1');
     line.dataset.key = key;
     linesSvg.appendChild(line);
 
-    // Card at spaced-out position
     const pin = document.createElement('div');
-    pin.className = 'wm-pin' + (unlocked ? '' : ' wm-locked') + (isMeltdown ? ' wm-meltdown' : '');
+    pin.className = 'wm-pin' + (unlocked ? '' : ' wm-locked') + (isMeltdown ? ' wm-meltdown' : '') + (isSpecial ? ' wm-portal' : '');
     pin.style.left = cardX + '%';
     pin.style.top = cardY + '%';
     pin.style.animationDelay = `${i * 80}ms`;
 
+    const labelText = isPortal ? 'PORTAL' : isReturn ? '← BACK' : st.name.split(' ').slice(-1)[0];
     pin.innerHTML = `
       <div class="wm-pin-thumb" style="background-image:url('${st.bgs[0]}?v=${_BUILD_V}')">
         ${!unlocked ? '<div class="wm-pin-lock">🔒</div>' : ''}
       </div>
-      <div class="wm-pin-label">${st.name.split(' ').slice(-1)[0]}</div>
+      <div class="wm-pin-label">${labelText}</div>
     `;
 
     if (unlocked) {
@@ -1572,18 +1612,30 @@ function renderStageSelect() {
           activePinKey = null;
           preview.style.display = 'none';
           pinsEl.querySelectorAll('.wm-pin').forEach(p => p.classList.remove('wm-active'));
-          linesSvg.querySelectorAll('line').forEach(l => l.setAttribute('stroke', l.dataset.key === key ? 'rgba(255,140,0,0.35)' : l.getAttribute('stroke')));
+          linesSvg.querySelectorAll('line').forEach(l => l.setAttribute('stroke', l.dataset.key === key ? defaultStroke : l.getAttribute('stroke')));
           return;
         }
         activePinKey = key;
         pinsEl.querySelectorAll('.wm-pin').forEach(p => p.classList.remove('wm-active'));
         pin.classList.add('wm-active');
-        // Highlight active line
         linesSvg.querySelectorAll('line').forEach(l => {
-          l.setAttribute('stroke', l.dataset.key === key ? 'rgba(255,140,0,0.8)' : 'rgba(255,140,0,0.15)');
+          const activeCol = isSpecial ? 'rgba(100,255,100,0.9)' : 'rgba(255,140,0,0.8)';
+          const dimCol = isSpecial ? 'rgba(100,255,100,0.2)' : 'rgba(255,140,0,0.15)';
+          l.setAttribute('stroke', l.dataset.key === key ? activeCol : dimCol);
           l.setAttribute('stroke-width', l.dataset.key === key ? '0.5' : '0.3');
         });
-        const scoreInfo = sd.best > 0 ? `★ BEST: ${sd.best.toLocaleString()} · ${sd.games} RUNS` : (st.unlock==='start'?'★ UNLOCKED':'NEED '+st.unlock.toLocaleString());
+
+        let scoreInfo, btnLabel;
+        if (isPortal) {
+          scoreInfo = '◈ VIBE JAM 2026 WEBRING';
+          btnLabel = 'ENTER PORTAL →';
+        } else if (isReturn) {
+          scoreInfo = `↻ RETURN TO ${_storedRef}`;
+          btnLabel = '← GO BACK';
+        } else {
+          scoreInfo = sd.best > 0 ? `★ BEST: ${sd.best.toLocaleString()} · ${sd.games} RUNS` : (st.unlock==='start'?'★ UNLOCKED':'NEED '+st.unlock.toLocaleString());
+          btnLabel = 'ENTER STAGE →';
+        }
         preview.style.display = 'flex';
         preview.innerHTML = `
           <div class="wm-preview-thumb" style="background-image:url('${st.bgs[0]}?v=${_BUILD_V}')"></div>
@@ -1591,12 +1643,23 @@ function renderStageSelect() {
             <div class="wm-preview-name">${st.name}</div>
             <div class="wm-preview-ojt">${st.ojtDesc||st.desc}</div>
             <div class="wm-preview-score">${scoreInfo}</div>
-            <button class="wm-preview-btn" id="wm-launch-btn">ENTER STAGE →</button>
+            <button class="wm-preview-btn" id="wm-launch-btn">${btnLabel}</button>
           </div>
         `;
         document.getElementById('wm-launch-btn').addEventListener('click', () => {
           preview.classList.add('wm-preview-flash');
-          setTimeout(() => launchStage(key), 400);
+          setTimeout(() => {
+            if (isPortal) {
+              // Exit portal — hop out to the webring
+              window.location.href = 'https://vibej.am/portal/2026?ref=oof.midatlantic.ai';
+            } else if (isReturn) {
+              // Return portal — forward all original params back
+              const params = _storedParams || ('?ref=' + encodeURIComponent(_storedRef));
+              window.location.href = 'https://vibej.am/portal/2026' + params;
+            } else {
+              launchStage(key);
+            }
+          }, 400);
         });
       });
     }
@@ -3032,6 +3095,11 @@ async function init(){
     resize();
     G.state='title';
     window.G=G;
+
+    // Vibe Jam 2026: if arriving via portal, skip title + drop straight into stage select
+    if (_cameFromPortal) {
+      setTimeout(() => { initAudio(); renderStageSelect(); }, 0);
+    }
 
     // Draw title logo onto canvas (avoids itch.io <img> issues)
     if (assets.titleLogo) {
