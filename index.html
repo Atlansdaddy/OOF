@@ -175,6 +175,27 @@ html,body{
 }
 .wm-active .wm-pin-dot{background:#fff;box-shadow:0 0 12px #fff}
 .wm-meltdown .wm-pin-thumb{border-color:#ff3333}
+/* ---- DEATH THEMES ---- */
+#death-screen[data-theme="classified_dt"]{background:linear-gradient(180deg,#1a0000 0%,#0d0000 100%)}
+#death-screen[data-theme="classified_dt"] .cause{color:#cc0000;border-color:rgba(200,0,0,0.4)}
+#death-screen[data-theme="classified_dt"] .title-line{color:#ff4444}
+#death-screen[data-theme="classified_dt"] .stats{color:#cc8888}
+#death-screen[data-theme="corruption"]{background:linear-gradient(180deg,#0a0800 0%,#050400 100%)}
+#death-screen[data-theme="corruption"] .cause{color:#ffd700;border-color:rgba(255,215,0,0.4)}
+#death-screen[data-theme="corruption"] .title-line{color:#ffd700}
+#death-screen[data-theme="corruption"] .stats{color:#ccaa44}
+#death-screen[data-theme="maga"]{background:linear-gradient(180deg,#0a001a 0%,#05000d 100%)}
+#death-screen[data-theme="maga"] .cause{color:#ff3333;border-color:rgba(255,51,51,0.4)}
+#death-screen[data-theme="maga"] .title-line{color:#ffffff}
+#death-screen[data-theme="maga"] .stats{color:#aaaacc}
+#death-screen[data-theme="oligarch"]{background:linear-gradient(180deg,#050505 0%,#000 100%)}
+#death-screen[data-theme="oligarch"] .cause{color:#ffd700;border-color:rgba(255,215,0,0.5);text-shadow:0 0 20px rgba(255,215,0,0.6)}
+#death-screen[data-theme="oligarch"] .title-line{color:#c0c0c0}
+#death-screen[data-theme="oligarch"] .stats{color:#888}
+#death-screen[data-theme="accountability"]{background:linear-gradient(180deg,#000814 0%,#000 100%)}
+#death-screen[data-theme="accountability"] .cause{color:#ffffff;border-color:rgba(255,255,255,0.5)}
+#death-screen[data-theme="accountability"] .title-line{color:#ffffff}
+#death-screen[data-theme="accountability"] .stats{color:#aaaacc}
 .wm-portal .wm-pin-thumb{border-color:#44ff88;box-shadow:0 3px 12px rgba(0,0,0,0.9),0 0 14px rgba(68,255,136,0.55)}
 .wm-portal .wm-pin-label{color:#88ffaa;background:rgba(0,20,10,0.8)}
 .wm-dot-portal{background:#44ff88 !important;box-shadow:0 0 10px #44ff88,0 0 20px rgba(68,255,136,0.6) !important;animation:portalPulse 1.2s ease-in-out infinite !important}
@@ -836,6 +857,24 @@ const SHOP_HATS = [
   {id:'chainsaw',name:'DOGE Chainsaw Hat',price:5000,sprite:'assets/hats/chainsawcap.png'},
   {id:'stamp',name:'CLASSIFIED Stamp Hat',price:7500,sprite:'assets/hats/stampcap.png'},
   {id:'mugshot',name:'The Mugshot Frame',price:10000,sprite:'assets/hats/bookingcap.png'},
+];
+const SHOP_SWIPE = [
+  {id:'default',      name:'Standard Issue',    price:0,     desc:'White. Classic. Free.'},
+  {id:'gold',         name:'Liquid Gold',        price:800,   desc:'For the classiest corrupt'},
+  {id:'fire',         name:'Executive Burn',     price:1500,  desc:'Light it all on fire'},
+  {id:'electric',     name:'SIGNAL Zap',         price:2500,  desc:'Compromised channel edition'},
+  {id:'money',        name:'Money Trail',        price:3500,  desc:'Follow the money'},
+  {id:'classified',   name:'REDACTED',           price:5000,  desc:'For document declassifiers'},
+  {id:'blood_orange', name:'Blood Orange',       price:7500,  desc:'Premium rare drop'},
+  {id:'rainbow',      name:'Liberation Day',     price:10000, desc:'Worth it'},
+];
+const SHOP_DEATH_THEMES = [
+  {id:'military',       name:'Military Tribunal',    price:0,     desc:'Standard issue. Free.'},
+  {id:'classified_dt',  name:'CLASSIFIED Dossier',   price:1200,  desc:'Red stamps. Dark secrets.'},
+  {id:'corruption',     name:'Corporate Corruption', price:2000,  desc:'Gold on black.'},
+  {id:'maga',           name:'Rally Night',          price:3000,  desc:'Red. White. Blue. Loud.'},
+  {id:'oligarch',       name:'Oligarch Mode',        price:6000,  desc:'Chrome and gold.'},
+  {id:'accountability', name:'The Reckoning',        price:12000, desc:'Clean. Just. Inevitable.'},
 ];
 
 // ---- CHARACTER EXPRESSIONS ----
@@ -1715,34 +1754,54 @@ function showBriefing(stageKey) {
 }
 
 // ---- SHOP ----
-function renderShop() {
+// ---- SHOP ----
+let _shopTab = 'hats';
+function renderShop(tab) {
+  if (tab) _shopTab = tab;
   const list = document.getElementById('shop-list');
   list.innerHTML = '';
   document.getElementById('shop-balance').textContent = `$OJT: ${save.ojt.toLocaleString()}`;
 
-  for (const item of SHOP_HATS) {
+  // Tab bar
+  const tabBar = document.createElement('div');
+  tabBar.style.cssText = 'display:flex;gap:6px;width:100%;max-width:360px;margin-bottom:10px';
+  [['hats','HATS'],['swipe','SWIPE'],['death','DEATH']].forEach(([t,label]) => {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.style.cssText = `flex:1;padding:8px 0;font-size:11px;font-family:'Arial Black',sans-serif;letter-spacing:1px;text-transform:uppercase;border-radius:6px;cursor:pointer;border:1px solid;transition:all 0.15s;${_shopTab===t ? 'background:rgba(255,140,0,0.25);border-color:#ff8c00;color:#ff8c00' : 'background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.12);color:#888'}`;
+    btn.addEventListener('click', () => renderShop(t));
+    tabBar.appendChild(btn);
+  });
+  list.appendChild(tabBar);
+
+  const items = _shopTab === 'hats' ? SHOP_HATS : _shopTab === 'swipe' ? SHOP_SWIPE : SHOP_DEATH_THEMES;
+  const equippedKey = _shopTab === 'hats' ? save.cosmetics.hat : _shopTab === 'swipe' ? save.cosmetics.sliceEffect : save.cosmetics.deathTheme;
+  const cosmeticField = _shopTab === 'hats' ? 'hat' : _shopTab === 'swipe' ? 'sliceEffect' : 'deathTheme';
+
+  for (const item of items) {
     const owned = save.unlockedCosmetics.includes(item.id);
-    const equipped = save.cosmetics.hat === item.id;
+    const equipped = equippedKey === item.id;
     const canAfford = save.ojt >= item.price;
 
     const el = document.createElement('div');
     el.className = 'shop-item' + (equipped ? ' equipped' : owned ? ' owned' : '');
 
-    let right = '';
-    if (equipped) right = '<div class="item-status">EQUIPPED</div>';
-    else if (owned) right = '<div class="item-status" style="color:#aaa">OWNED</div>';
-    else if (item.price === 0) right = '<div class="item-price">FREE</div>';
-    else right = `<div class="item-price" style="${canAfford?'':'opacity:0.4'}">${item.price.toLocaleString()} $OJT</div>`;
+    const descEl = item.desc ? `<span style="color:#666;font-size:10px;display:block;margin-top:2px">${item.desc}</span>` : '';
+    const right = equipped
+      ? `<span class="item-status">EQUIPPED</span>`
+      : owned
+        ? `<span class="item-status">OWNED</span>`
+        : `<span class="item-price" style="${canAfford?'':'color:#555'}">${item.price.toLocaleString()} $OJT</span>`;
 
-    el.innerHTML = `<div class="item-name">${item.name}</div>${right}`;
+    el.innerHTML = `<div><div class="item-name">${item.name}</div>${descEl}</div>${right}`;
 
     el.addEventListener('click', () => {
       if (equipped) return;
-      if (owned) { save.cosmetics.hat = item.id; writeSave(); renderShop(); return; }
+      if (owned) { save.cosmetics[cosmeticField] = item.id; writeSave(); renderShop(); return; }
       if (item.price === 0 || (canAfford && save.ojt >= item.price)) {
-        save.ojt -= item.price;
+        if (item.price > 0) save.ojt -= item.price;
         save.unlockedCosmetics.push(item.id);
-        save.cosmetics.hat = item.id;
+        save.cosmetics[cosmeticField] = item.id;
         writeSave();
         renderShop();
       }
@@ -2081,7 +2140,8 @@ function sliceObj(o,angle){
     G.shake = 18;
     G.popups.push({x:CFG.W/2, y:CFG.H*0.35, text:'HELL YEAH!', life:1.8, max:1.8, col:'#ff8c00', size:32});
   }
-  spawnParticles(o.x,o.y,G.combo,o.sprite);spawnPopup(o.x,o.y,pts,G.combo);sndSlice(G.combo);
+  const _efxCols=EFFECT_PARTICLES[save.cosmetics.sliceEffect]||null;
+  spawnParticles(o.x,o.y,G.combo,o.sprite,_efxCols);spawnPopup(o.x,o.y,pts,G.combo);sndSlice(G.combo);
 
   // Track recent slices for themed combos
   if(o.content&&o.content.id){
@@ -2269,8 +2329,30 @@ function sliceBomb(o){
 }
 
 // ---- PARTICLES ----
+// ---- SWIPE EFFECT COLORS ----
+const EFFECT_PARTICLES = {
+  gold:         ['#ffd700','#ffec6e','#c8a200','#ffdd00'],
+  fire:         ['#ff4400','#ff8800','#ffcc00','#ff2200','#ff6600'],
+  electric:     ['#00ccff','#ffffff','#88eeff','#0099ff'],
+  money:        ['#00cc44','#00ff66','#009933','#44ff88'],
+  classified:   ['#cc0000','#880000','#ff3333','#440000'],
+  blood_orange: ['#aa1100','#cc3300','#ff4400','#881100'],
+  rainbow:      ['#ff0000','#ff8800','#ffff00','#00ff00','#0088ff','#cc00ff'],
+};
+function getTrailColor(a){
+  switch(save.cosmetics.sliceEffect){
+    case 'gold':         return `rgba(255,215,0,${a*0.85})`;
+    case 'fire':         return `rgba(255,${Math.floor(60+a*80)},0,${a*0.9})`;
+    case 'electric':     return `rgba(0,200,255,${a*0.9})`;
+    case 'money':        return `rgba(0,200,80,${a*0.85})`;
+    case 'classified':   return `rgba(220,0,0,${a*0.9})`;
+    case 'blood_orange': return `rgba(180,20,0,${a*0.85})`;
+    case 'rainbow':      return `hsla(${(Date.now()/4)%360},100%,65%,${a*0.85})`;
+    default:             return `rgba(255,255,255,${a*0.75})`;
+  }
+}
 const PCOLORS={orange:['#ff8c00','#ff6600','#ffaa00','#ff4400','#ffe066'],mine:['#444','#666','#888','#333','#ff4400'],tariff:['#ffd700','#ffaa00','#ff8c00','#ffcc33','#fff'],doge:['#ffd700','#ff8c00','#fff','#ffcc00','#ffaa00'],signal:['#4488ff','#66aaff','#2266cc','#88ccff','#fff'],file:['#222','#444','#666','#333','#888'],truth:['#ff4444','#ff6666','#ff2222','#ff8888','#fff'],secret:['#cc9966','#aa7744','#886633','#ddaa77','#fff'],execorder:['#fff','#eee','#ddd','#ffd700','#ccc'],riviera:['#44bbff','#88ddff','#22aaee','#ffd700','#fff'],tanker:['#444','#666','#222','#888','#ff8c00'],exec:['#333','#555','#777','#222','#ffd700']};
-function spawnParticles(x,y,combo,spriteKey){const n=CFG.PARTICLE_COUNT+Math.min(combo,10)*2;const cols=PCOLORS[spriteKey]||PCOLORS.orange;for(let i=0;i<n;i++){const a=Math.PI*2*i/n+rng(-0.4,0.4),spd=CFG.PARTICLE_SPEED*rng(0.4,1);G.particles.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,r:rng(2.5,6),life:CFG.PARTICLE_LIFE+rng(0,0.2),max:CFG.PARTICLE_LIFE+0.2,col:pick(cols),grav:false})}for(let i=0;i<6;i++){const a=rng(-Math.PI,0),spd=rng(80,180);G.particles.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd-180,r:rng(3,6),life:0.75,max:0.75,col:pick(cols),grav:true})}}
+function spawnParticles(x,y,combo,spriteKey,effectCols){const n=CFG.PARTICLE_COUNT+Math.min(combo,10)*2;const cols=effectCols||(PCOLORS[spriteKey]||PCOLORS.orange);for(let i=0;i<n;i++){const a=Math.PI*2*i/n+rng(-0.4,0.4),spd=CFG.PARTICLE_SPEED*rng(0.4,1);G.particles.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,r:rng(2.5,6),life:CFG.PARTICLE_LIFE+rng(0,0.2),max:CFG.PARTICLE_LIFE+0.2,col:pick(cols),grav:false})}for(let i=0;i<6;i++){const a=rng(-Math.PI,0),spd=rng(80,180);G.particles.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd-180,r:rng(3,6),life:0.75,max:0.75,col:pick(cols),grav:true})}}
 function updateParticles(dt){for(let i=G.particles.length-1;i>=0;i--){const p=G.particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.grav)p.vy+=CFG.PARTICLE_GRAVITY*dt;p.life-=dt;if(p.life<=0)G.particles.splice(i,1)}}
 function spawnPopup(x,y,pts,combo){G.popups.push({x,y,text:combo>1?`+${pts} x${combo}`:`+${pts}`,life:0.75,max:0.75,col:combo>=10?'#ff0':combo>=5?'#ffa500':'#fff',size:15+Math.min(combo,12)*1.5})}
 function updatePopups(dt){for(let i=G.popups.length-1;i>=0;i--){G.popups[i].y-=65*dt;G.popups[i].life-=dt;if(G.popups[i].life<=0)G.popups.splice(i,1)}}
@@ -2480,12 +2562,17 @@ function drawObj(o){
   else{ctx.beginPath();ctx.arc(0,0,o.r,0,Math.PI*2);ctx.fillStyle=o.isBomb?'#886644':'#ff8c00';ctx.fill();ctx.strokeStyle=o.isBomb?'#664422':'#cc6600';ctx.lineWidth=2;ctx.stroke();if(!o.isBomb){ctx.beginPath();ctx.ellipse(-o.r*0.05,-o.r*0.88,o.r*0.55,o.r*0.28,-0.15,0,Math.PI*2);ctx.fillStyle='#ffe44d';ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(-7,-5,5.5,6.5,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(7,-5,5.5,6.5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(-6,-4,2.8,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(8,-4,2.8,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(1,5,9,0.15,Math.PI-0.15);ctx.strokeStyle='#7a3000';ctx.lineWidth=1.8;ctx.stroke()}else{ctx.strokeStyle='#ff0000';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,-12);ctx.lineTo(12,12);ctx.stroke();ctx.beginPath();ctx.moveTo(12,-12);ctx.lineTo(-12,12);ctx.stroke()}}
   ctx.restore();
 
-  // TODO: hat rendering disabled until better hat assets
-  // if(!o.isBomb && save.cosmetics.hat !== 'mojo'){
-  //   const hatImg = assets['hat_'+save.cosmetics.hat];
-  //   if(hatImg){ ctx.save(); ctx.translate(o.x, o.y-o.r*0.6); ctx.rotate(o.rot*0.3);
-  //     const hs=o.r*1.2; ctx.drawImage(hatImg,-hs/2,-hs/2,hs,hs); ctx.restore(); }
-  // }
+  if(!o.isBomb && !o.isPowerup && !o.isHandcuffs && save.cosmetics.hat !== 'mojo'){
+    const hatImg = assets['hat_'+save.cosmetics.hat];
+    if(hatImg){
+      ctx.save();
+      ctx.translate(o.x, o.y - o.r * 0.85);
+      ctx.rotate(o.rot * 0.25);
+      const hs = o.r * 2.2;
+      ctx.drawImage(hatImg, -hs/2, -hs/2, hs, hs);
+      ctx.restore();
+    }
+  }
 
   if(!o.isHandcuffs){ctx.fillStyle=o.isBomb?'#ff4444':'#fff';ctx.font=`bold ${o.isBomb?11:10}px Arial,sans-serif`;ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText(o.label,o.x,o.y+o.r+13);ctx.shadowBlur=0;}
   // Handcuffs: golden justice glow + rotating outer ring
@@ -2544,7 +2631,7 @@ function drawObj(o){
 }
 
 function drawParticles(){for(const p of G.particles){const a=p.life/p.max;ctx.globalAlpha=a;ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r*a,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1}
-function drawTrail(){if(G.trail.length<2)return;for(let i=1;i<G.trail.length;i++){const c=G.trail[i],p=G.trail[i-1],a=c.life/CFG.TRAIL_LIFE;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(c.x,c.y);ctx.strokeStyle=`rgba(255,255,255,${a*0.75})`;ctx.lineWidth=3.5*a;ctx.lineCap='round';ctx.stroke()}}
+function drawTrail(){if(G.trail.length<2)return;for(let i=1;i<G.trail.length;i++){const c=G.trail[i],p=G.trail[i-1],a=c.life/CFG.TRAIL_LIFE;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(c.x,c.y);ctx.strokeStyle=getTrailColor(a);ctx.lineWidth=3.5*a;ctx.lineCap='round';ctx.stroke()}}
 function drawPopups(){for(const p of G.popups){const a=p.life/p.max,s=1+(1-a)*0.25;ctx.globalAlpha=a;ctx.fillStyle=p.col;ctx.font=`bold ${p.size*s}px Arial,sans-serif`;ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText(p.text,p.x,p.y);ctx.shadowBlur=0}ctx.globalAlpha=1}
 
 function drawQuoteFlashes(){
@@ -2854,6 +2941,14 @@ function die(){
   save.totalSlices+=G.slices;
   save.totalGames++;
   if(G.maxCombo>save.bestCombo)save.bestCombo=G.maxCombo;
+
+  // Score-based OJT income: 1 OJT per 100 score
+  const scoreIncome = Math.floor(G.score / 100);
+  // Discovery bonus: first time on this stage (games===1 since games++ already ran)
+  const discoveryBonus = (sd.games === 1) ? 50 : 0;
+  // Personal best bonus: score matches best (just set above if it was a new best)
+  const pbBonus = (G.score > 0 && G.score === sd.best && sd.games > 1) ? 25 : 0;
+  save.ojt = Math.max(0, save.ojt + scoreIncome + discoveryBonus + pbBonus);
   writeSave();
 
   // Achievement checks at death
@@ -2880,22 +2975,23 @@ function die(){
 
   // Portfolio line
   const pEl = document.getElementById('death-portfolio');
-  if(G.betResult && G.bet) {
-    const d = G.betResult.delta;
-    const arrow = d >= 0 ? '📈' : '📉';
-    const sign = d >= 0 ? '+' : '';
-    const betInfo = G.betResult.won ? '(good bet)' : '(bad bet, worse performance)';
-    pEl.textContent = `${arrow} $OJT: ${sign}${d.toLocaleString()} ${betInfo}`;
-    pEl.className = 'portfolio ' + (d >= 0 ? 'up' : 'down');
-  } else {
-    pEl.textContent = `$OJT: ${save.ojt.toLocaleString()}`;
-    pEl.className = 'portfolio';
+  {
+    const delta = G.betResult ? G.betResult.delta : 0;
+    let ojtLines = `$OJT EARNED:  +${scoreIncome}`;
+    if (discoveryBonus > 0) ojtLines += `\nDISCOVERY:    +${discoveryBonus}`;
+    if (pbBonus > 0)        ojtLines += `\nNEW BEST:     +${pbBonus}`;
+    if (delta > 0)          ojtLines += `\nBET WIN:      +${delta}`;
+    else if (delta < 0)     ojtLines += `\nBET LOSS:     ${delta}`;
+    ojtLines += `\nBALANCE:   ${save.ojt.toLocaleString()}`;
+    pEl.textContent = ojtLines;
+    pEl.className = 'portfolio' + (delta >= 0 ? ' up' : ' down');
   }
 
   // Set stage-specific death background
   const deathBg = stCfg.deathBg || 'assets/screens/gameover1.png';
   document.getElementById('death-screen').style.backgroundImage = `url('${deathBg}')`;
 
+  document.getElementById('death-screen').dataset.theme = save.cosmetics.deathTheme || 'military';
   showScreen('death-screen');
 }
 
