@@ -521,7 +521,7 @@ a[href*="vibej.am"]{
   <div id="title-poke" style="order:1">TAP HIM</div>
   <div class="tagline" style="order:2;margin-top:4px">swipe. slice. survive. share.</div>
   <div class="sub" style="padding:14px 44px;border:2px solid rgba(255,140,0,0.5);border-radius:10px;font-size:16px;letter-spacing:4px;cursor:pointer;background:rgba(255,140,0,0.1);margin-top:10px;order:3">START</div>
-  <div class="version" style="position:static;margin-top:12px;order:4">v0.5 — #OrangeFury</div>
+  <div class="version" id="btn-devlog-open" style="position:static;margin-top:12px;order:4;cursor:pointer;text-decoration:underline;text-underline-offset:3px;opacity:0.7">v0.5 — #OrangeFury — DEVLOG ›</div>
 </div>
 
 <!-- STAGE SELECT -->
@@ -559,6 +559,15 @@ a[href*="vibej.am"]{
     <button class="bet-btn" data-meter="econ" id="bet-econ">ECONOMY WON'T KILL ME</button>
     <button class="bet-btn" data-meter="scandal" id="bet-scandal">SCANDAL WON'T KILL ME</button>
   </div>
+</div>
+
+<!-- DEVLOG -->
+<div class="screen" id="devlog-screen" style="flex-direction:column;align-items:center;background:#07070f;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 30px">
+  <div style="width:100%;background:rgba(255,140,0,0.08);border-bottom:1px solid rgba(255,140,0,0.2);padding:16px 16px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10">
+    <div style="color:#ff8c00;font-family:'Arial Black',sans-serif;font-size:16px;text-transform:uppercase;letter-spacing:2px">// DEVLOG</div>
+    <button id="btn-devlog-back" style="background:none;border:1px solid rgba(255,255,255,0.15);color:#666;font-size:10px;font-family:'Arial Black',sans-serif;text-transform:uppercase;letter-spacing:1px;padding:6px 14px;border-radius:6px;cursor:pointer">← BACK</button>
+  </div>
+  <div id="devlog-list" style="width:100%;max-width:480px;padding:12px 16px;display:flex;flex-direction:column;gap:20px"></div>
 </div>
 
 <!-- SHOP -->
@@ -2431,6 +2440,8 @@ canvas.addEventListener('mousemove',e=>{if(!inp.active)return;const v=s2v(e.clie
 canvas.addEventListener('mouseup',()=>{onSwipeEnd();});
 
 document.getElementById('title-screen').addEventListener('click',()=>{if(G.state==='title'){initAudio();renderStageSelect()}});
+document.getElementById('btn-devlog-open').addEventListener('click',(e)=>{e.stopPropagation();renderDevlog();});
+document.getElementById('btn-devlog-back').addEventListener('click',()=>{showScreen('title-screen');});
 document.getElementById('btn-replay').addEventListener('click',()=>{showScreen(null);launchStage(G.currentStage)});
 document.getElementById('btn-stages').addEventListener('click',()=>{renderStageSelect()});
 document.getElementById('btn-tutorial-go').addEventListener('click',(e)=>{
@@ -3131,6 +3142,95 @@ async function startPlaying(){
   stopDrone();
   document.getElementById('game').style.boxShadow='';
   showScreen(null);
+}
+
+// ---- DEVLOG ----
+const DEVLOG = [
+  {
+    version: 'v0.5', date: '2026-04-18', tag: 'CURRENT BUILD',
+    title: 'Polish & Economy',
+    entries: [
+      'Full cosmetic pass — hats, swipe effects, death themes in $OJT shop',
+      'DOSSIER tab: achievements viewer with trophy/lock icons and unlock count',
+      'Hats now render on corner HUD avatar only (not on flying objects)',
+      'Sprite-based slice animation — cut the actual asset at swipe angle',
+      'OJT income from gameplay: score/100 per run + discovery + PB bonuses',
+      'Vibe Jam 2026 integration: widget, portal pins, heartbeat analytics',
+      'Stage select: full-width SHOP / HOW TO PLAY toolbar, widget repositioned',
+    ]
+  },
+  {
+    version: 'v0.4', date: '2026-04-12', tag: 'PHASE 4',
+    title: 'Economy & Betting',
+    entries: [
+      '$OJT balance system — start with 1,000, earn through gameplay',
+      'Classified Briefing screen — 3 headlines + bet placement before each stage',
+      'Payout logic on death — correct/wrong bet × score multiplier',
+      'Cosmetic shop foundation — hat equipping, localStorage persistence',
+      'Stage unlocks via cumulative score thresholds',
+      'Death screen portfolio line showing $OJT gain/loss',
+    ]
+  },
+  {
+    version: 'v0.3', date: '2026-04-07', tag: 'PHASE 3',
+    title: 'Stages & World Map',
+    entries: [
+      '7-stage world map with interactive pins and geo-accurate placement',
+      'Stage-specific spawn pools, backgrounds, and death screens',
+      'Portal system — Vibe Jam 2026 webring entry/exit points on map',
+      'Per-stage high score tracking and unlock flow',
+      'localStorage persistence across sessions',
+    ]
+  },
+  {
+    version: 'v0.2', date: '2026-04-02', tag: 'PHASE 2',
+    title: 'Game Systems',
+    entries: [
+      'Three crisis meters: WAR / ECONOMIC / SCANDAL with drain and death trigger',
+      'All 12 object types with movement patterns (zigzag, boomerang, splits, etc.)',
+      'Bombs (classified docs, oil tankers) with 3-strike system',
+      'Quote flash on slice — 800ms satirical quote overlay',
+      'Speed curve — acceleration over time per GDD spec',
+      'Death screen with cause, title, and run stats',
+      'Combo system up to 50x with slow-mo and screen effects',
+    ]
+  },
+  {
+    version: 'v0.1', date: '2026-03-28', tag: 'PHASE 1',
+    title: 'Core Slice Loop',
+    entries: [
+      'Canvas game loop, portrait orientation, responsive scaling',
+      'Touch/swipe detection with velocity tracking',
+      'Swipe-to-slice: line intersection with object hitbox',
+      'Juice particle burst on slice',
+      'Procedural slice sound via Web Audio API',
+      'Score counter and miss detection',
+      '"If this isn\'t satisfying, nothing else matters." — it was.',
+    ]
+  },
+];
+
+function renderDevlog() {
+  const list = document.getElementById('devlog-list');
+  list.innerHTML = '';
+  for (const entry of DEVLOG) {
+    const isLatest = entry === DEVLOG[0];
+    const block = document.createElement('div');
+    block.style.cssText = `border-left:3px solid ${isLatest ? '#ff8c00' : 'rgba(255,255,255,0.12)'};padding-left:14px`;
+    const tagColor = isLatest ? '#ff8c00' : '#555';
+    block.innerHTML = `
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+        <span style="color:${tagColor};font-family:'Arial Black',sans-serif;font-size:13px">${entry.version}</span>
+        <span style="color:#333;font-size:10px;font-family:'Courier New',monospace">${entry.date}</span>
+        ${isLatest ? `<span style="background:rgba(255,140,0,0.2);color:#ff8c00;font-size:8px;font-family:'Arial Black',sans-serif;letter-spacing:1px;padding:2px 6px;border-radius:3px;text-transform:uppercase">${entry.tag}</span>` : ''}
+      </div>
+      <div style="color:#ccc;font-family:'Arial Black',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">${entry.title}</div>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:5px">
+        ${entry.entries.map(e => `<li style="color:#666;font-size:11px;line-height:1.5;padding-left:12px;position:relative"><span style="position:absolute;left:0;color:${isLatest?'#ff8c00':'#333'}">›</span>${e}</li>`).join('')}
+      </ul>`;
+    list.appendChild(block);
+  }
+  showScreen('devlog-screen');
 }
 
 // ---- MAIN LOOP ----
