@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="build" content="20260416164118">
+<meta name="build" content="20260418031352">
 <title>OPERATION ORANGE FURY</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -305,11 +305,12 @@ html,body{
   display:flex;gap:8px;width:100%;max-width:380px;margin-top:10px;
 }
 .sf2-util-btn{
-  flex:1;padding:8px;font-size:10px;font-family:'Arial Black',sans-serif;
-  text-transform:uppercase;letter-spacing:1px;border:none;border-radius:5px;
+  flex:1;padding:12px 8px;font-size:11px;font-family:'Arial Black',sans-serif;
+  text-transform:uppercase;letter-spacing:1px;border:none;border-radius:0;
   cursor:pointer;transition:filter 0.1s;
 }
-.sf2-util-btn:active{filter:brightness(1.3)}
+.sf2-util-btn:active{filter:brightness(1.4)}
+.sf2-util-btn+.sf2-util-btn{border-left:1px solid rgba(255,255,255,0.1)}
 
 /* ---- DEATH SCREEN ---- */
 #death-screen{
@@ -495,6 +496,15 @@ html,body{
   border:none;margin-top:8px;
 }
 #btn-tutorial-go:active{background:#cc6600;transform:scale(0.96)}
+
+/* ---- VIBE JAM BADGE: stretch full-width ---- */
+a[href*="vibej.am"]{
+  left:0 !important;right:0 !important;
+  width:100% !important;max-width:100% !important;
+  text-align:center !important;
+  border-radius:0 !important;
+  box-sizing:border-box !important;
+}
 </style>
 <script defer src="https://vibej.am/2026/widget.js"></script>
 </head>
@@ -1553,7 +1563,7 @@ function renderStageSelect() {
       <div id="wm-pins"></div>
       <div class="wm-card-preview" id="wm-card-preview" style="display:none"></div>
     </div>
-    <div class="sf2-util-row" style="max-width:100%;padding:0 10px">
+    <div class="sf2-util-row" style="max-width:100%;width:100%;padding:0;gap:0;margin-bottom:44px;border-top:1px solid rgba(255,255,255,0.08)">
       <button class="sf2-util-btn" id="btn-shop" style="background:rgba(255,215,0,0.12);color:#ffd700;border:1px solid rgba(255,215,0,0.3)">💰 SHOP</button>
       <button class="sf2-util-btn" id="btn-howto" style="background:rgba(255,255,255,0.06);color:#aaa;border:1px solid rgba(255,255,255,0.12)">❓ HOW TO PLAY</button>
     </div>
@@ -1566,7 +1576,7 @@ function renderStageSelect() {
     const util = el.querySelector('.sf2-util-row');
     if(wrap && header && util) {
       const available = Math.min(el.offsetHeight, window.innerHeight);
-      const used = header.offsetHeight + util.offsetHeight;
+      const used = header.offsetHeight + util.offsetHeight + 44; // +44 clears vibejam badge
       wrap.style.height = (available - used) + 'px';
     }
     if(wrap) {
@@ -1574,7 +1584,7 @@ function renderStageSelect() {
     }
   });
 
-  document.getElementById('btn-shop').addEventListener('click', () => showScreen('shop-screen'));
+  document.getElementById('btn-shop').addEventListener('click', () => renderShop(_shopTab));
   document.getElementById('btn-howto').addEventListener('click', (e) => {
     e.stopPropagation(); showScreen('tutorial-screen');
     document.getElementById('btn-tutorial-go').style.display='none';
@@ -1764,16 +1774,50 @@ function renderShop(tab) {
 
   // Tab bar
   const tabBar = document.createElement('div');
-  tabBar.style.cssText = 'display:flex;gap:6px;width:100%;max-width:360px;margin-bottom:10px';
-  [['hats','HATS'],['swipe','SWIPE'],['death','DEATH']].forEach(([t,label]) => {
+  tabBar.style.cssText = 'display:flex;gap:5px;width:100%;max-width:360px;margin-bottom:10px;flex-wrap:wrap';
+  [['hats','HATS'],['swipe','SWIPE'],['death','DEATH'],['dossier','🏆 DOSSIER']].forEach(([t,label]) => {
     const btn = document.createElement('button');
     btn.textContent = label;
-    btn.style.cssText = `flex:1;padding:8px 0;font-size:11px;font-family:'Arial Black',sans-serif;letter-spacing:1px;text-transform:uppercase;border-radius:6px;cursor:pointer;border:1px solid;transition:all 0.15s;${_shopTab===t ? 'background:rgba(255,140,0,0.25);border-color:#ff8c00;color:#ff8c00' : 'background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.12);color:#888'}`;
+    const isActive = _shopTab === t;
+    btn.style.cssText = `flex:1;min-width:60px;padding:8px 4px;font-size:10px;font-family:'Arial Black',sans-serif;letter-spacing:0.5px;text-transform:uppercase;border-radius:6px;cursor:pointer;border:1px solid;transition:all 0.15s;${isActive ? 'background:rgba(255,140,0,0.25);border-color:#ff8c00;color:#ff8c00' : 'background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.12);color:#888'}`;
     btn.addEventListener('click', () => renderShop(t));
     tabBar.appendChild(btn);
   });
   list.appendChild(tabBar);
 
+  // ---- DOSSIER TAB: achievements viewer ----
+  if (_shopTab === 'dossier') {
+    const unlocked = save.achievements || [];
+    const total = ACHIEVEMENTS.length;
+    const count = unlocked.length;
+    const header = document.createElement('div');
+    header.style.cssText = 'width:100%;max-width:360px;color:#888;font-size:11px;font-family:"Arial Black",sans-serif;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;text-align:center';
+    header.textContent = `${count} / ${total} UNLOCKED`;
+    list.appendChild(header);
+
+    for (const ach of ACHIEVEMENTS) {
+      const isUnlocked = unlocked.includes(ach.id);
+      const el = document.createElement('div');
+      el.className = 'shop-item' + (isUnlocked ? ' owned' : '');
+      el.style.opacity = isUnlocked ? '1' : '0.45';
+      const icon = isUnlocked ? '🏆' : '🔒';
+      const nameColor = isUnlocked ? '#ffd700' : '#555';
+      const descColor = isUnlocked ? '#888' : '#333';
+      el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;width:100%">
+          <span style="font-size:18px;min-width:24px;text-align:center">${icon}</span>
+          <div>
+            <div class="item-name" style="color:${nameColor}">${ach.name}</div>
+            <span style="color:${descColor};font-size:10px;display:block;margin-top:2px">${ach.desc}</span>
+          </div>
+        </div>`;
+      list.appendChild(el);
+    }
+    showScreen('shop-screen');
+    return;
+  }
+
+  // ---- SHOP TABS: hats / swipe / death ----
   const items = _shopTab === 'hats' ? SHOP_HATS : _shopTab === 'swipe' ? SHOP_SWIPE : SHOP_DEATH_THEMES;
   const equippedKey = _shopTab === 'hats' ? save.cosmetics.hat : _shopTab === 'swipe' ? save.cosmetics.sliceEffect : save.cosmetics.deathTheme;
   const cosmeticField = _shopTab === 'hats' ? 'hat' : _shopTab === 'swipe' ? 'sliceEffect' : 'deathTheme';
@@ -2041,7 +2085,7 @@ function updateObjs(dt){
 function sliceObj(o,angle){
   // Handcuffs — win condition
   if(o.isHandcuffs){
-    o.sliced=true;o.st=0;
+    o.sliced=true;o.st=0;o.sliceAngle=angle;
     o.lx=o.x;o.ly=o.y;o.lvx=o.vx-50;o.lvy=o.vy-110;o.lr=0;o.lrv=-5;
     o.rx=o.x;o.ry=o.y;o.rvx=o.vx+50;o.rvy=o.vy-110;o.rr=0;o.rrv=5;
     G.score+=HANDCUFFS_DEF.pts;G.shake=20;
@@ -2062,7 +2106,7 @@ function sliceObj(o,angle){
     G._facePop=1.0;
     if(o.hitsLeft<=0){
       // Boss killed!
-      o.sliced=true;o.st=0;
+      o.sliced=true;o.st=0;o.sliceAngle=angle;
       o.lx=o.x;o.ly=o.y;o.lvx=o.vx-60;o.lvy=-200;o.lr=0;o.lrv=-6;
       o.rx=o.x;o.ry=o.y;o.rvx=o.vx+60;o.rvy=-200;o.rr=0;o.rrv=6;
       const def=o.bossDef;
@@ -2086,7 +2130,7 @@ function sliceObj(o,angle){
 
   // Power-up handling
   if(o.isPowerup){
-    o.sliced=true;o.st=0;
+    o.sliced=true;o.st=0;o.sliceAngle=angle;
     o.lx=o.x;o.ly=o.y;o.lvx=o.vx-30;o.lvy=o.vy-60;o.lr=0;o.lrv=-2;
     o.rx=o.x;o.ry=o.y;o.rvx=o.vx+30;o.rvy=o.vy-60;o.rr=0;o.rrv=2;
     activatePowerup(o.powerupDef);
@@ -2107,7 +2151,7 @@ function sliceObj(o,angle){
 
   // Muskrat splits into 3
   if(o.special&&o.special.splits&&!o.splitsDone){
-    o.sliced=true;o.st=0;
+    o.sliced=true;o.st=0;o.sliceAngle=angle;
     o.lx=o.x;o.ly=o.y;o.lvx=o.vx;o.lvy=o.vy-100;o.lr=0;o.lrv=-3;
     o.rx=o.x;o.ry=o.y;o.rvx=o.vx;o.rvy=o.vy-100;o.rr=0;o.rrv=3;
     // Spawn 3 mini oranges
@@ -2124,7 +2168,7 @@ function sliceObj(o,angle){
     return;
   }
 
-  o.sliced=true;o.st=0;
+  o.sliced=true;o.st=0;o.sliceAngle=angle;
   const px=Math.cos(angle+Math.PI/2),py=Math.sin(angle+Math.PI/2),sp=90;
   o.lx=o.x;o.ly=o.y;o.lvx=o.vx+px*sp;o.lvy=o.vy+py*sp-120;o.lr=0;o.lrv=-5-Math.random()*3;
   o.rx=o.x;o.ry=o.y;o.rvx=o.vx-px*sp;o.rvy=o.vy-py*sp-120;o.rr=0;o.rrv=5+Math.random()*3;
@@ -2290,7 +2334,7 @@ function win(){
 function activatePowerup(pu){
   if(pu.effect==='wipe'){
     // Constitution: wipe all objects, drain all meters
-    for(const o of G.objects)if(!o.sliced&&!o.isBomb){o.sliced=true;o.st=0;o.lx=o.x;o.ly=o.y;o.lvx=0;o.lvy=-200;o.lr=0;o.lrv=-3;o.rx=o.x;o.ry=o.y;o.rvx=0;o.rvy=-200;o.rr=0;o.rrv=3;G.score+=50;G.slices++;}
+    for(const o of G.objects)if(!o.sliced&&!o.isBomb){o.sliced=true;o.st=0;o.sliceAngle=Math.random()*Math.PI*2;o.lx=o.x;o.ly=o.y;o.lvx=0;o.lvy=-200;o.lr=0;o.lrv=-3;o.rx=o.x;o.ry=o.y;o.rvx=0;o.rvy=-200;o.rr=0;o.rrv=3;G.score+=50;G.slices++;}
     G.meters.war=Math.max(0,G.meters.war-20);G.meters.econ=Math.max(0,G.meters.econ-20);G.meters.scandal=Math.max(0,G.meters.scandal-20);
     G.comboAnnounce={name:'WE THE PEOPLE',color:'#ffd700',life:2,max:2};
     G.shake=10;
@@ -2524,10 +2568,32 @@ function drawMeters(){
 
 function drawObj(o){
   if(o.sliced){
-    const alpha=Math.max(0,1-o.st/0.8);ctx.globalAlpha=alpha;
-    const col=o.isBomb?'#886644':'#ff8c00',inner=o.isBomb?'#aa8866':'#ffaa44';
-    ctx.save();ctx.translate(o.lx,o.ly);ctx.rotate(o.lr);ctx.beginPath();ctx.arc(0,0,o.r,Math.PI*0.5,Math.PI*1.5);ctx.closePath();ctx.fillStyle=col;ctx.fill();ctx.beginPath();ctx.arc(1,0,o.r*0.72,Math.PI*0.5,Math.PI*1.5);ctx.closePath();ctx.fillStyle=inner;ctx.fill();ctx.restore();
-    ctx.save();ctx.translate(o.rx,o.ry);ctx.rotate(o.rr);ctx.beginPath();ctx.arc(0,0,o.r,-Math.PI*0.5,Math.PI*0.5);ctx.closePath();ctx.fillStyle=col;ctx.fill();ctx.beginPath();ctx.arc(-1,0,o.r*0.72,-Math.PI*0.5,Math.PI*0.5);ctx.closePath();ctx.fillStyle=inner;ctx.fill();ctx.restore();
+    const alpha=Math.max(0,1-o.st/0.8);
+    ctx.globalAlpha=alpha;
+    const s=o.r*2.6;
+    const img=assets[o.sprite];
+    const sa=o.sliceAngle||0;
+    // Draw each half: translate to piece position, clip to correct side of slice, draw sprite
+    [[o.lx,o.ly,o.lr,-1],[o.rx,o.ry,o.rr,1]].forEach(([px,py,pr,side])=>{
+      ctx.save();
+      ctx.translate(px,py);
+      // Clip half-plane: rotate so slice line is vertical, rect covers one side, then unrotate
+      ctx.rotate(sa-pr);
+      ctx.beginPath();
+      if(side<0)ctx.rect(-s*2,-s*2,s*2,s*4);else ctx.rect(0,-s*2,s*2,s*4);
+      ctx.clip();
+      ctx.rotate(-(sa-pr));
+      if(img){
+        ctx.rotate(pr);
+        ctx.drawImage(img,-s/2,-s/2,s,s);
+      } else {
+        // fallback circle half for missing sprites
+        ctx.beginPath();
+        ctx.arc(0,0,o.r,side<0?Math.PI*0.5:-Math.PI*0.5,side<0?Math.PI*1.5:Math.PI*0.5);
+        ctx.closePath();ctx.fillStyle=o.isBomb?'#886644':'#ff8c00';ctx.fill();
+      }
+      ctx.restore();
+    });
     ctx.globalAlpha=1;return;
   }
   // Red ⚠ above bombs
@@ -2562,17 +2628,7 @@ function drawObj(o){
   else{ctx.beginPath();ctx.arc(0,0,o.r,0,Math.PI*2);ctx.fillStyle=o.isBomb?'#886644':'#ff8c00';ctx.fill();ctx.strokeStyle=o.isBomb?'#664422':'#cc6600';ctx.lineWidth=2;ctx.stroke();if(!o.isBomb){ctx.beginPath();ctx.ellipse(-o.r*0.05,-o.r*0.88,o.r*0.55,o.r*0.28,-0.15,0,Math.PI*2);ctx.fillStyle='#ffe44d';ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(-7,-5,5.5,6.5,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(7,-5,5.5,6.5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(-6,-4,2.8,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(8,-4,2.8,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(1,5,9,0.15,Math.PI-0.15);ctx.strokeStyle='#7a3000';ctx.lineWidth=1.8;ctx.stroke()}else{ctx.strokeStyle='#ff0000';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,-12);ctx.lineTo(12,12);ctx.stroke();ctx.beginPath();ctx.moveTo(12,-12);ctx.lineTo(-12,12);ctx.stroke()}}
   ctx.restore();
 
-  if(!o.isBomb && !o.isPowerup && !o.isHandcuffs && save.cosmetics.hat !== 'mojo'){
-    const hatImg = assets['hat_'+save.cosmetics.hat];
-    if(hatImg){
-      ctx.save();
-      ctx.translate(o.x, o.y - o.r * 0.85);
-      ctx.rotate(o.rot * 0.25);
-      const hs = o.r * 2.2;
-      ctx.drawImage(hatImg, -hs/2, -hs/2, hs, hs);
-      ctx.restore();
-    }
-  }
+  // Hats only on the corner HUD avatar — not on flying objects
 
   if(!o.isHandcuffs){ctx.fillStyle=o.isBomb?'#ff4444':'#fff';ctx.font=`bold ${o.isBomb?11:10}px Arial,sans-serif`;ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText(o.label,o.x,o.y+o.r+13);ctx.shadowBlur=0;}
   // Handcuffs: golden justice glow + rotating outer ring
@@ -2714,6 +2770,14 @@ function drawHUD(){
   ctx.stroke();
   ctx.restore();
   drawCharExpression(expr, faceX, faceY + bounce, faceSize);
+  // Hat drawn on top of corner avatar only
+  if(save.cosmetics.hat && save.cosmetics.hat !== 'mojo'){
+    const hatImg = assets['hat_'+save.cosmetics.hat];
+    if(hatImg){
+      const hs = faceSize * 1.05;
+      ctx.drawImage(hatImg, faceX - hs/2, faceY + bounce - faceSize * 0.62, hs, hs);
+    }
+  }
 
   // Multi-slice announcement
   if(G._multiSliceTimer>0){
