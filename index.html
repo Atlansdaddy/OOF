@@ -475,7 +475,7 @@ html,body{
 }
 #btn-tutorial-go:active{background:#cc6600;transform:scale(0.96)}
 </style>
-<script async src="https://vibej.am/2026/widget.js"></script>
+<script defer src="https://vibej.am/2026/widget.js"></script>
 </head>
 <body>
 
@@ -1231,6 +1231,23 @@ window.addEventListener('resize',resize); resize();
 // ---- ASSETS ----
 const assets = {};
 const _BUILD_V = document.querySelector('meta[name="build"]')?.getAttribute('content') || Date.now();
+
+// ---- VIBE JAM EARLY HEARTBEAT ----
+// The jam widget pings heartbeat.php every 60s — any session under 60s shows as 0 playtime.
+// We call the same endpoint on a faster schedule after first interaction so short sessions register.
+(function(){
+  const HB = 'https://vibej.am/2026/heartbeat.php';
+  const SCHEDULE = [5,10,15,20,25,30,35,40,45,50,55]; // every 5s for first minute, then widget takes over
+  let armed = false;
+  const ping = () => { if(!document.hidden) fetch(HB,{method:'GET',mode:'cors',keepalive:true}).catch(()=>{}); };
+  const arm  = () => {
+    if(armed) return; armed = true;
+    SCHEDULE.forEach(s => setTimeout(ping, s * 1000));
+  };
+  ['touchstart','mousedown','keydown'].forEach(e =>
+    document.addEventListener(e, arm, {once:true, passive:true})
+  );
+})();
 
 // Flood-fill BG removal: seeds from all 4 edges, only kills pixels connected to the border
 // that are near-white OR near-black. Internal white/black pixels (teeth, pupils, outlines) survive.
