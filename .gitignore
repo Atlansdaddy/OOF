@@ -4,3 +4,17 @@ test-itchio/
 itchio-test/
 .claude/
 annihilate-the-orange.jsx
+
+# Build output folders
+_opt_build/
+_webp_build/
+
+# Itch.io zip artifacts
+ooa-itchio.zip
+ooa-webp-build.zip
+
+# Design source ZIPs (not game assets)
+assets/**/*.zip
+
+# Unoptimized map source (worldmap_game.svg is the one used in-game)
+assets/ui/worldmap.svg
