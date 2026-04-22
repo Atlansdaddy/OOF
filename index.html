@@ -427,12 +427,41 @@ html,body{
   width:100%;max-width:360px;background:rgba(255,255,255,0.04);
   border:1px solid rgba(255,255,255,0.08);border-radius:10px;
   padding:12px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+  transition:transform 0.08s ease,background 0.15s ease,border-color 0.15s ease;
+  -webkit-tap-highlight-color:transparent;
 }
+.shop-item:active{transform:scale(0.97);filter:brightness(1.2)}
 .shop-item.owned{border-color:rgba(255,215,0,0.2)}
 .shop-item.equipped{border-color:#ff8c00;background:rgba(255,140,0,0.08)}
+.shop-item.selected{border-color:#ff8c00;background:rgba(255,140,0,0.12);border-width:2px}
 .shop-item .item-name{color:#fff;font-size:13px;font-weight:bold}
 .shop-item .item-price{color:#ffd700;font-size:12px;font-family:'Courier New',monospace}
 .shop-item .item-status{color:#66ff66;font-size:11px;text-transform:uppercase}
+/* preview panel that expands below a selected item */
+.shop-preview{
+  width:100%;max-width:360px;
+  background:rgba(255,140,0,0.06);border:1px solid rgba(255,140,0,0.25);
+  border-radius:10px;padding:14px 16px;
+  display:flex;flex-direction:column;gap:10px;
+  animation:previewIn 0.15s ease;
+}
+@keyframes previewIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.shop-preview-row{display:flex;align-items:center;gap:14px}
+.shop-preview-img{width:64px;height:64px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.05);padding:4px}
+.shop-preview-swatch{width:64px;height:64px;border-radius:8px}
+.shop-preview-text{flex:1}
+.shop-preview-name{color:#fff;font-family:'Arial Black',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:0.5px}
+.shop-preview-desc{color:#888;font-size:11px;margin-top:3px;line-height:1.4}
+.shop-preview-price{color:#ffd700;font-family:'Courier New',monospace;font-size:12px;margin-top:4px}
+.shop-confirm-row{display:flex;gap:8px}
+.shop-confirm-btn{
+  flex:1;padding:10px;font-size:12px;font-family:'Arial Black',sans-serif;
+  text-transform:uppercase;letter-spacing:1px;border:none;border-radius:8px;cursor:pointer;
+  transition:filter 0.1s,transform 0.08s;
+}
+.shop-confirm-btn:active{transform:scale(0.96);filter:brightness(1.25)}
+.shop-confirm-yes{background:#ff8c00;color:#fff}
+.shop-confirm-no{background:rgba(255,255,255,0.08);color:#666;border:1px solid rgba(255,255,255,0.1)}
 .shop-back{
   padding:10px 24px;font-size:13px;font-family:'Arial Black',sans-serif;
   text-transform:uppercase;border:none;border-radius:8px;cursor:pointer;
@@ -1368,6 +1397,9 @@ function loadBgs(stageKey) {
 let ac=null;
 function initAudio(){if(ac)return;ac=new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume()}
 function sndSlice(combo){if(!ac||soundMuted)return;const t=ac.currentTime;const len=ac.sampleRate*0.09;const buf=ac.createBuffer(1,len,ac.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.5)*0.5;const s=ac.createBufferSource();s.buffer=buf;const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=700+Math.min(combo,12)*120;f.Q.value=2.5;const g=ac.createGain();g.gain.setValueAtTime(0.4,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);s.connect(f);f.connect(g);g.connect(ac.destination);s.start(t);s.stop(t+0.1);const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(280+combo*40,t);o.frequency.exponentialRampToValueAtTime(80,t+0.14);const og=ac.createGain();og.gain.setValueAtTime(0.12,t);og.gain.exponentialRampToValueAtTime(0.001,t+0.14);o.connect(og);og.connect(ac.destination);o.start(t);o.stop(t+0.14)}
+function sndUITap(){if(!ac||soundMuted)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(600,t);o.frequency.exponentialRampToValueAtTime(800,t+0.06);const g=ac.createGain();g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.08);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.08)}
+function sndUIPurchase(){if(!ac||soundMuted)return;const t=ac.currentTime;[0,0.06,0.12].forEach((d,i)=>{const o=ac.createOscillator();o.type='sine';o.frequency.value=[523,659,784][i];const g=ac.createGain();g.gain.setValueAtTime(0.1,t+d);g.gain.exponentialRampToValueAtTime(0.001,t+d+0.18);o.connect(g);g.connect(ac.destination);o.start(t+d);o.stop(t+d+0.2);})}
+function sndUIEquip(){if(!ac||soundMuted)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(880,t);o.frequency.exponentialRampToValueAtTime(1100,t+0.1);const g=ac.createGain();g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.12)}
 function sndMiss(){if(!ac||soundMuted)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='triangle';o.frequency.setValueAtTime(90,t);o.frequency.exponentialRampToValueAtTime(35,t+0.22);const g=ac.createGain();g.gain.setValueAtTime(0.18,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.25)}
 function sndBomb(){if(!ac||soundMuted)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='square';o.frequency.setValueAtTime(220,t);o.frequency.setValueAtTime(180,t+0.05);o.frequency.setValueAtTime(220,t+0.1);const g=ac.createGain();g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.3);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.3);const o2=ac.createOscillator();o2.type='sine';o2.frequency.setValueAtTime(50,t);o2.frequency.exponentialRampToValueAtTime(25,t+0.4);const g2=ac.createGain();g2.gain.setValueAtTime(0.25,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.4);o2.connect(g2);g2.connect(ac.destination);o2.start(t);o2.stop(t+0.4)}
 function sndMeterWarn(){if(!ac||soundMuted)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(440,t);o.frequency.setValueAtTime(520,t+0.08);const g=ac.createGain();g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+0.15)}
@@ -1775,6 +1807,7 @@ function showBriefing(stageKey) {
 // ---- SHOP ----
 // ---- SHOP ----
 let _shopTab = 'hats';
+let _shopSelectedId = null; // which item is expanded for preview
 function renderShop(tab) {
   if (tab) _shopTab = tab;
   const list = document.getElementById('shop-list');
@@ -1831,35 +1864,123 @@ function renderShop(tab) {
   const equippedKey = _shopTab === 'hats' ? save.cosmetics.hat : _shopTab === 'swipe' ? save.cosmetics.sliceEffect : save.cosmetics.deathTheme;
   const cosmeticField = _shopTab === 'hats' ? 'hat' : _shopTab === 'swipe' ? 'sliceEffect' : 'deathTheme';
 
+  // reset selection when switching tabs
+  if (tab && tab !== _shopTab) _shopSelectedId = null;
+
+  const buildPreview = (item, owned, canAfford) => {
+    const panel = document.createElement('div');
+    panel.className = 'shop-preview';
+
+    // Visual preview
+    let previewHTML = '';
+    if (_shopTab === 'hats' && item.sprite) {
+      previewHTML = `<img class="shop-preview-img" src="${item.sprite}?v=${_BUILD_V}" alt="${item.name}">`;
+    } else if (_shopTab === 'swipe') {
+      const colors = {
+        default:'linear-gradient(90deg,rgba(255,255,255,0.9),rgba(255,255,255,0.1))',
+        gold:'linear-gradient(90deg,#ffd700,#c8a200)',
+        fire:'linear-gradient(90deg,#ff4400,#ffcc00)',
+        electric:'linear-gradient(90deg,#00ccff,#0044ff)',
+        money:'linear-gradient(90deg,#00cc44,#004422)',
+        classified:'linear-gradient(90deg,#cc0000,#440000)',
+        blood_orange:'linear-gradient(90deg,#aa1100,#ff4400)',
+        rainbow:'linear-gradient(90deg,#f00,#ff8800,#ff0,#0f0,#00f,#c0f)',
+      }[item.id] || 'linear-gradient(90deg,#888,#333)';
+      previewHTML = `<div class="shop-preview-swatch" style="background:${colors};border-radius:8px"></div>`;
+    } else if (_shopTab === 'death') {
+      const colors = {
+        military:'linear-gradient(135deg,#1a2a1a,#3a4a2a)',
+        classified_dt:'linear-gradient(135deg,#1a0000,#cc0000)',
+        corruption:'linear-gradient(135deg,#1a1400,#ffd700)',
+        maga:'linear-gradient(135deg,#cc0000,#ffffff,#0033cc)',
+        oligarch:'linear-gradient(135deg,#111,#c0c0c0,#ffd700)',
+        accountability:'linear-gradient(135deg,#001133,#0055cc)',
+      }[item.id] || 'linear-gradient(135deg,#111,#333)';
+      previewHTML = `<div class="shop-preview-swatch" style="background:${colors};border-radius:8px"></div>`;
+    }
+
+    const actionHTML = owned
+      ? `<button class="shop-confirm-btn shop-confirm-yes" data-action="equip">✓ EQUIP</button>`
+      : canAfford
+        ? `<div class="shop-confirm-row">
+             <button class="shop-confirm-btn shop-confirm-no" data-action="cancel">✕ CANCEL</button>
+             <button class="shop-confirm-btn shop-confirm-yes" data-action="buy">BUY — ${item.price.toLocaleString()} $OJT</button>
+           </div>`
+        : `<div style="color:#555;font-size:11px;text-align:center;padding:6px 0">INSUFFICIENT FUNDS<br><span style="color:#333">${(item.price-save.ojt).toLocaleString()} $OJT SHORT</span></div>`;
+
+    panel.innerHTML = `
+      <div class="shop-preview-row">
+        ${previewHTML}
+        <div class="shop-preview-text">
+          <div class="shop-preview-name">${item.name}</div>
+          <div class="shop-preview-desc">${item.desc||''}</div>
+          ${!owned && item.price>0 ? `<div class="shop-preview-price">${item.price.toLocaleString()} $OJT</div>` : ''}
+        </div>
+      </div>
+      ${actionHTML}`;
+
+    panel.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        btn.style.transform = 'scale(0.94)';
+        setTimeout(() => { btn.style.transform = ''; }, 100);
+        const action = btn.dataset.action;
+        if (action === 'cancel') { setTimeout(() => { _shopSelectedId = null; renderShop(_shopTab); }, 120); return; }
+        if (action === 'equip') {
+          btn.textContent = '✓ DONE';
+          btn.style.background = '#44cc44';
+          setTimeout(() => { save.cosmetics[cosmeticField] = item.id; writeSave(); renderShop(_shopTab); }, 300);
+          return;
+        }
+        if (action === 'buy') {
+          btn.textContent = '✓ PURCHASED';
+          btn.style.background = '#44cc44';
+          setTimeout(() => {
+            save.ojt -= item.price;
+            save.unlockedCosmetics.push(item.id);
+            save.cosmetics[cosmeticField] = item.id;
+            writeSave(); renderShop(_shopTab);
+          }, 350);
+          return;
+        }
+      });
+    });
+    return panel;
+  };
+
   for (const item of items) {
     const owned = save.unlockedCosmetics.includes(item.id);
     const equipped = equippedKey === item.id;
     const canAfford = save.ojt >= item.price;
+    const isSelected = _shopSelectedId === item.id;
 
     const el = document.createElement('div');
-    el.className = 'shop-item' + (equipped ? ' equipped' : owned ? ' owned' : '');
+    el.className = 'shop-item' + (equipped ? ' equipped' : owned ? ' owned' : '') + (isSelected ? ' selected' : '');
 
     const descEl = item.desc ? `<span style="color:#666;font-size:10px;display:block;margin-top:2px">${item.desc}</span>` : '';
     const right = equipped
-      ? `<span class="item-status">EQUIPPED</span>`
+      ? `<span class="item-status">✓ EQUIPPED</span>`
       : owned
-        ? `<span class="item-status">OWNED</span>`
-        : `<span class="item-price" style="${canAfford?'':'color:#555'}">${item.price.toLocaleString()} $OJT</span>`;
+        ? `<span class="item-status" style="color:#aaa">OWNED</span>`
+        : `<span class="item-price" style="${canAfford?'':'color:#555'}">${item.price===0?'FREE':item.price.toLocaleString()+' $OJT'}</span>`;
 
     el.innerHTML = `<div><div class="item-name">${item.name}</div>${descEl}</div>${right}`;
 
     el.addEventListener('click', () => {
       if (equipped) return;
-      if (owned) { save.cosmetics[cosmeticField] = item.id; writeSave(); renderShop(); return; }
-      if (item.price === 0 || (canAfford && save.ojt >= item.price)) {
-        if (item.price > 0) save.ojt -= item.price;
-        save.unlockedCosmetics.push(item.id);
-        save.cosmetics[cosmeticField] = item.id;
-        writeSave();
-        renderShop();
-      }
+      // flash the item so the tap feels registered
+      el.style.background = 'rgba(255,140,0,0.18)';
+      setTimeout(() => {
+        el.style.background = '';
+        // toggle selection — tap again to collapse
+        _shopSelectedId = isSelected ? null : item.id;
+        renderShop(_shopTab);
+      }, 100);
     });
+
     list.appendChild(el);
+    // inject preview panel immediately after selected item
+    if (isSelected) list.appendChild(buildPreview(item, owned, canAfford));
   }
   showScreen('shop-screen');
 }
@@ -2782,11 +2903,11 @@ function drawHUD(){
   ctx.restore();
   drawCharExpression(expr, faceX, faceY + bounce, faceSize);
   // Hat drawn on top of corner avatar only
-  if(save.cosmetics.hat && save.cosmetics.hat !== 'mojo'){
+  if(save.cosmetics.hat){
     const hatImg = assets['hat_'+save.cosmetics.hat];
     if(hatImg){
-      const hs = faceSize * 1.05;
-      ctx.drawImage(hatImg, faceX - hs/2, faceY + bounce - faceSize * 0.62, hs, hs);
+      const hs = faceSize * 0.65;
+      ctx.drawImage(hatImg, faceX - hs/2, faceY + bounce - faceSize * 0.48, hs, hs);
     }
   }
 
