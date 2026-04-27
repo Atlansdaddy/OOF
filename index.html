@@ -784,12 +784,19 @@ const STAGE_ORDER = ['oval','mara','senate','hormuz','un','telaviv','meltdown'];
 const _urlParams = new URLSearchParams(window.location.search);
 const _cameFromPortal = _urlParams.get('portal') === 'true';
 const _portalRef = _urlParams.get('ref') || null;
-// Persist ref for the session so return portal survives navigation
-if (_portalRef) sessionStorage.setItem('vibejam_ref', _portalRef);
-// Also persist all incoming params to forward back
-if (_cameFromPortal) sessionStorage.setItem('vibejam_params', window.location.search);
-const _storedRef = sessionStorage.getItem('vibejam_ref');
-const _storedParams = sessionStorage.getItem('vibejam_params') || '';
+// Persist ref for the session so return portal survives navigation.
+// Brave Shields / strict storage policies can throw SecurityError on cross-site iframe writes —
+// swallow it so the rest of the script keeps running.
+let _storedRef = null, _storedParams = '';
+try {
+  if (_portalRef) sessionStorage.setItem('vibejam_ref', _portalRef);
+  if (_cameFromPortal) sessionStorage.setItem('vibejam_params', window.location.search);
+  _storedRef = sessionStorage.getItem('vibejam_ref');
+  _storedParams = sessionStorage.getItem('vibejam_params') || '';
+} catch (e) {
+  _storedRef = _portalRef;
+  _storedParams = _cameFromPortal ? window.location.search : '';
+}
 
 // Portal stage definitions — not real stages, just map pins that redirect
 STAGES.portal = {
